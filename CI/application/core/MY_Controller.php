@@ -52,8 +52,8 @@ class MY_Controller extends CI_Controller
             $this->_model->fill_entity_name($this::ENTITY_NAME);
         }
 
-        // デバッグ用プロファイラの有効化
-        if ($this->config->item('enable_profiler') && !$this->input->is_ajax_request() ) {
+        // デバッグ用プロファイラの有効化 (管理画面ログイン時のみ有効)
+        if (!empty($this->my_session->admin) && $this->config->item('enable_profiler') && !$this->input->is_ajax_request()) {
             $this->output->enable_profiler(true);
         }
     }
@@ -128,8 +128,7 @@ class MY_Controller extends CI_Controller
     public function _required_any($val, $field)
     {
         $CI = get_instance();
-        $data = $CI->input->post($field);
-        var_dump($val);
+        $comp_val = $this->form_validation->validation_data[$field];
         if ($data !== null ){
             if (is_array($data)) {
                 $data = array_filter($data);
@@ -145,13 +144,17 @@ class MY_Controller extends CI_Controller
     // 条件付で必須チェックを行う
     public function _required_if($val, $param)
     {
-        if (preg_match('/^(.+?)=(.+?)$/', $param, $m)) {
+        if (preg_match('/^(.+?)(!)?=(.+?)$/', $param, $m)) {
             $CI = get_instance();
             $comp_field = $m[1];
-            $val_cond = $m[2];
-            $comp_val = $CI->input->post($comp_field);
-            if($comp_val==$val_cond && empty($val)) {
-                return false;
+            $not = $m[2] ? true : false;
+            $val_cond = $m[3];
+
+            if ($val_cond=='null' || $val_cond=='empty') $val_cond = '';
+            // $comp_val = $CI->input->post($comp_field);
+            $comp_val = @$this->form_validation->validation_data[$comp_field];
+            if (empty($val)) { // 入力がされていない
+                if (($not && $comp_val != $val_cond) || (!$not && $comp_val == $val_cond)) return false;
             }
             return true;
         }
@@ -179,6 +182,9 @@ class MY_Controller extends CI_Controller
                 return true;
             }
         } else if ($type==='auth') { // プレビュータイプ=ベーシック認証
+            $user = $this->my_session->admin;
+            if(!empty($user)) return true; // ログインユーザならベーシック認証は行わない
+
             // $_SERVER['HTTP_AUTHORIZATION']に認証データが入っているので取得する。
             // mod_rewriteにより、環境変数にREDIRECTというプレフィックスが設定されるため、
             // 正規表現で取得する

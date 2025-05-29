@@ -56,6 +56,7 @@
         <?php endif?>
     </div>
 </div>
+<?php if (!$confirm_flag): // 入力画面?>
 <script>
 $(document).ready(function(){
 
@@ -109,13 +110,11 @@ $(document).ready(function(){
             $draft_btn.hide();
             $confirm_btn.show();
             $('button[name="btn_direct"]').show();
-            $('button[name="btn_temporary"]').show();
         } else {
             $publish_term_block.hide();
             $draft_btn.show();
             $confirm_btn.hide();
             $('button[name="btn_direct"]').hide();
-            $('button[name="btn_temporary"]').hide();
         }
 
         var term = $term_radio.filter(':checked').val();
@@ -138,3 +137,4 @@ $(document).ready(function(){
 
 
 </script>
+<?php endif?>

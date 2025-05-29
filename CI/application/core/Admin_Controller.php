@@ -37,7 +37,7 @@ class Admin_Controller extends MY_Controller
             $this->my_session->{UPLOADER_SESSION_ROOT_NAME.'.uploader_auth'} = true;
         }
 
-        if (method_exists(get_class(), $this->_method_name)) {
+        if (method_exists(__CLASS__, $this->_method_name)) {
             // AdminControllerに定義されているメソッドが呼び出された
             if (!in_array($this->_method_name, $this->_exec_methods)) {
                 // 実行可能メソッドとして定義されていない場合はアクセスを許可しない
@@ -631,17 +631,7 @@ class Admin_Controller extends MY_Controller
         }
         if ($this->input->method()=='post') {
             // データがPOST送信された
-            if ($this->input->post('btn_temporary')!==null) {
-                $validated = $this->_exec_validate(null, $validate_group);
-                if ($validated) { // 検証成功
-                    $this->_init_temp_data();
-                    $this->_call_action_method('_temporary', $this->input->post());
-                    admin_redirect($this->_controller_name.'/index');   // 一覧にリダイレクト
-                } else { // 検証失敗
-                    $this->_call_action_method('_error_back');
-                }
-
-            } else if ($this->input->post('btn_direct')!==null) {
+            if ($this->input->post('btn_direct')!==null) {
                 $validated = $this->_exec_validate(null, $validate_group);
                 if ($validated) { // 検証成功
                     if (!is_dev_env()) $this->_init_temp_data(); // 開発環境以外はリロードを防止するために入力データをクリア
@@ -807,8 +797,8 @@ class Admin_Controller extends MY_Controller
 
     // バリデーションの実行
     // $data: バリデート対象のデータ
-    // $group: バリデートグループ名
-    protected function _exec_validate($data=null, $group=null)
+    // $config: バリデートグループ名
+    protected function _exec_validate($data=null, $config=null)
     {
         if (!empty($data['id'])) {
             $this->_model_id = $data['id'];
@@ -821,23 +811,24 @@ class Admin_Controller extends MY_Controller
             // ユーザ定義のバリデートメソッドが定義されていない場合
             // 通常のバリデートを実行
             $this->form_validation->reset_validation();
-            if (!empty($data)) { // データの指定あり
-                $this->form_validation->set_data($data);
+            if (empty($data)) { // データの指定なしの場合、POSTを使用する
+                $data = $_POST;
             }
-            if (empty($group)) {
+            $this->form_validation->set_data($data);
+            if (empty($config)) {
                 // デフォルトで edit をバリデーショングループとする
-                $group = 'admin/'.$this->_controller_name.'/edit'; // バリデーショングループ
+                $config = 'admin/'.$this->_controller_name.'/edit'; // バリデーショングループ
             }
-            $this->before_validate($group, empty($data)?$_POST:$data);
-            $validated = $this->form_validation->run($group);
+            $this->before_validate($config, $data);
+            $validated = $this->form_validation->run($config);
         }
         return $validated;
     }
 
     // 下書き用バリデーションの実行
     // $data: バリデート対象のデータ
-    // $group: バリデートグループ名
-    protected function _exec_draft_validate($data=null, $group=null)
+    // $config: バリデートグループ名
+    protected function _exec_draft_validate($data=null, $config=null)
     {
         if (method_exists($this, '_validate_draft')) {
             // ユーザ定義のバリデートメソッドが定義されている場合は
@@ -847,15 +838,16 @@ class Admin_Controller extends MY_Controller
             // ユーザ定義のバリデートメソッドが定義されていない場合
             // 通常のバリデートを実行(必須等のルールは除外)
             $this->form_validation->reset_validation();
-            if (!empty($data)) { // データの指定あり
-                $this->form_validation->set_data($data);
+            if (empty($data)) { // データの指定なしの場合、POSTを使用する
+                $data = $_POST;
             }
-            if (empty($group)) {
+            $this->form_validation->set_data($data);
+            if (empty($config)) {
                 // デフォルトで edit をバリデーショングループとする
-                $group = 'admin/'.$this->_controller_name.'/edit'; // バリデーショングループ
+                $config = 'admin/'.$this->_controller_name.'/edit'; // バリデーショングループ
             }
-            $this->before_validate($group, empty($data)?$_POST:$data);
-            $validated = $this->form_validation->run($group, $data, true);
+            $this->before_validate($config, $data);
+            $validated = $this->form_validation->run($config, $data, true);
         }
         return $validated;
     }
@@ -884,33 +876,42 @@ class Admin_Controller extends MY_Controller
 
     // バリデーション処理前
     // ルールの動的追加など
-    protected function before_validate($group,$data=null) {
+    protected function before_validate($config,$data=null) {
     }
-    
-    // 一次保存クリア
-    public function clear_temporary($id)
+
+    // 並び順の保存処理
+    public function sort ()
     {
-        // 保存処理
-        $save_id = $this->_model->clear_temporary($id);
-        if ($save_id) { // 保存成功
-            // 操作ログ保存
-            $this->_save_ope_log(
-                $save_id, '一時保存クリア', true, "一時保存クリア時のタイトル:". strip_tags($this->_model->get_last_title())
-            );
-            // フラッシュメッセージ設定
-            $this->flash->info(
-                sprintf('ID:%s「%s」の一時保存をクリアしました', $save_id, strip_tags($this->_model->get_last_title()))
-            );
-            admin_redirect($this->_controller_name.'/edit/'. $id);
-        } else { // 失敗
-            // 操作ログ保存
-            $this->_save_ope_log(
-                $save_id, '一時保存クリア', false, "一時保存対象ID:". $this->_model_id
-            );
-            // フラッシュメッセージ設定
-            $this->flash->error(
-                sprintf('ID:%s の一時保存に失敗しました', $this->_model_id)
-            );
+        if (!empty($_GET['ids'])) {
+            // 並び順の送信あり
+            if ($this->_model->save_sorted($_GET['ids'])) {
+                // 保存成功
+                $this->_save_ope_log(
+                    null, '並び順保存', true, sprintf('並び順:%s', $_GET['ids'])
+                );
+                // フラッシュメッセージ設定
+                $this->flash->info(
+                    sprintf('並び順の保存が完了しました')
+                );
+            } else {
+                // 保存失敗
+                $this->_save_ope_log(
+                    null, '並び順保存', false, sprintf('並び順:%s', $_GET['ids'])
+                );
+                $this->flash->error(
+                    sprintf('並び順の保存に失敗しました')
+                );
+            }
+            admin_redirect('/'.$this->_controller_name.'/sort');
+        } else {
+            // ソート済み一覧を取得
+            $sorted = $this->_model->get_sorted();
+
+            $view = 'admin/'.$this->_controller_name.'/sort';
+            if (!file_exists(VIEWPATH. $view.'.php')) { // 個別のテンプレートが存在しない
+                $view = 'admin/common/sort';
+            }
+            $this->load->view($view, compact('sorted'));
         }
     }
 }

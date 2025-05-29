@@ -104,6 +104,10 @@ class MY_Model extends CI_Model
         }
     }
 
+    public function set_search_sorts ($sorts) {
+        $this->_search_sorts = $sorts;
+    }
+
     // テーブル列が存在するか判定する
     // $field: 判定するフィールド名
     protected function _field_exists($field) {
@@ -148,7 +152,7 @@ class MY_Model extends CI_Model
     {
         // デフォルトの検索条件とマージして
         // 最終的な検索条件を生成
-        $options = $this->_create_search_options(['where'=>["id"=>$id]]);
+        $options = $this->_create_search_options(['where'=>["id"=>$id], 'limit'=>1]);
         $this->_build_query($options);
         // 検索実行
         $data = $this->db->get()->row_array();
@@ -164,19 +168,22 @@ class MY_Model extends CI_Model
         return $data;
     }
 
-    // get_by_idの派生版
-    public function get_by_etc($column, $value, $callback = true)
+    // 複数IDからデータを取得する
+    // $ids: 取得対象のID配列
+    // $callbacks: true=コールバック有効、false=コールバック無効
+    public function get_by_ids($ids, $callback=true)
     {
-        $options = $this->_create_search_options(['where' => [$column => $value]]);
+        // デフォルトの検索条件とマージして
+        // 最終的な検索条件を生成
+        $options = $this->_create_search_options(['where_in'=>["id"=>$ids]]);
         $this->_build_query($options);
-        $data = $this->db->get()->row_array();
+        // 検索実行
+        $data = $this->db->get()->result_array();
 
         // after findのコール
-        if (!empty($data)) {
-            if ($callback && method_exists($this, '_after_find')) {
-                $tmp = array($data);
-                $tmp = $this->_after_find($tmp);
-                if (!empty($tmp[0])) $data = $tmp[0];
+        if ($callback && method_exists($this, '_after_find')) {
+            if (!empty($data)) {
+                $data = $this->_after_find($data);
             }
         }
         return $data;
@@ -197,8 +204,8 @@ class MY_Model extends CI_Model
             $CI = get_instance();
             if (!empty($this->_search_fields)) { // 検索定義あり
                 foreach ($this->_search_fields as $field => $opt) {
-                    $req = $CI->input->post_get($field);
-                    if (is_null($req) || (is_array($req) && count($req)===0) || (!is_array($req) && strlen($req)===0)) continue; // 入力がなければスキップ
+                    $req = !is_null($CI->input->post_get($field)) ? $CI->input->post_get($field) : '';
+                    if ((is_array($req) && count($req)===0) || (!is_array($req) && strlen($req)===0)) continue; // 入力がなければスキップ
 
                     // フィールドの定義があればそれを優先して使う
                     if (!empty($opt['field'])) $field = $opt['field'];
@@ -207,7 +214,7 @@ class MY_Model extends CI_Model
                     switch ($opt['type']) {
                         case 'query': // 独自クエリ
                             // メソッドの定義がなければスキップ
-                            if (empty($opt['method']) || !method_exists($this, $opt['method'])) break;
+                            if (empty($opt['method']) || !method_exists($this, $opt['method'])) continue 2;
                             $where = $this->{$opt['method']}($req, $field);
                             if (!empty($where)) { // 検索条件生成成功
                                 $options['where'][] = $where;
@@ -234,7 +241,7 @@ class MY_Model extends CI_Model
                             break;
                         case 'value_in': // IN
                         case 'not_value_in':
-                            if (!is_array($req)) break; // 配列でなければスキップ
+                            if (!is_array($req)) continue 2; // 配列でなければスキップ
                             foreach ($req as $k => $v) {
                                 if (strlen($v)==0) {
                                     unset($req[$k]);
@@ -395,7 +402,7 @@ class MY_Model extends CI_Model
     // $ids: 複製対象の複数ID
     // $atomic: true = トランザクションをこのメソッドで完結する
     //          false = 外部のメソッドでトランザクション処理を行う
-    public function replicate_all($ids, $atomic=true)
+    public function replicate_all($ids, $atomic=true, &$ret_err_id=[])
     {
         if (is_string($ids)) {
             $ids = explode(',', $ids);
@@ -406,12 +413,12 @@ class MY_Model extends CI_Model
 
         $this->_last_save_data = null;
 
-        $err_id = [];
+        $ret_err_id = [];
         foreach ($ids as $id) {
             $ret = $this->replicate($id, false);
-            if (!$ret) $err_id[] = $id; // 処理失敗
+            if (!$ret) $ret_err_id[] = $id; // 処理失敗
         }
-        if (empty($err_id)) { // エラーなし
+        if (empty($ret_err_id)) { // エラーなし
             if ($atomic) $this->db->trans_commit(); // トランザクションコミット
 
             $this->_last_save_data = $ids; // 保存データを一時記録
@@ -419,9 +426,9 @@ class MY_Model extends CI_Model
         } else { // 失敗
             if ($atomic) $this->db->trans_rollback(); // トランザクションロールバック
 
-            log_message('error', sprintf('%sの一括複製に失敗しました。ID:%s 失敗したID:%s', $this->_entity_name, print_r($ids,true), print_r($err_id,true)));
+            log_message('error', sprintf('%sの一括複製に失敗しました。ID:%s 失敗したID:%s', $this->_entity_name, print_r($ids,true), print_r($ret_err_id,true)));
         }
-        return empty($err_id) ? true : false;
+        return empty($ret_err_id) ? true : false;
     }
 
     // データ削除処理
@@ -474,7 +481,7 @@ class MY_Model extends CI_Model
     // $ids: 削除対象の複数ID
     // $atomic: true = トランザクションをこのメソッドで完結する
     //          false = 外部のメソッドでトランザクション処理を行う
-    public function delete_all($ids, $atomic=true)
+    public function delete_all($ids, $atomic=true, &$ret_err_id=[])
     {
         if (is_string($ids)) {
             $ids = explode(',', $ids);
@@ -483,14 +490,14 @@ class MY_Model extends CI_Model
 
         if ($atomic) $this->db->trans_begin();
 
-        $err_id = [];
+        $ret_err_id = [];
         foreach ($ids as $id) {
             $ret = $this->delete($id, false);
-            if (!$ret) $err_id[] = $id; // 処理失敗
+            if (!$ret) $ret_err_id[] = $id; // 処理失敗
         }
 
         $this->_last_save_data = null;
-        if (empty($err_id)) { // エラーなし
+        if (empty($ret_err_id)) { // エラーなし
             if ($atomic) $this->db->trans_commit(); // トランザクションコミット
 
             $this->_last_save_data = $ids; // 保存データを一時記録
@@ -498,9 +505,9 @@ class MY_Model extends CI_Model
         } else { // 失敗
             if ($atomic) $this->db->trans_rollback(); // トランザクションロールバック
 
-            log_message('error', sprintf('%sの一括削除に失敗しました。ID:%s 失敗したID:%s', $this->_entity_name, print_r($ids,true), print_r($err_id,true)));
+            log_message('error', sprintf('%sの一括削除に失敗しました。ID:%s 失敗したID:%s', $this->_entity_name, print_r($ids,true), print_r($ret_err_id,true)));
         }
-        return empty($err_id) ? true : false;
+        return empty($ret_err_id) ? true : false;
     }
 
     // 公開または非公開処理(公開フラグが存在しない場合は処理対象外)
@@ -546,7 +553,7 @@ class MY_Model extends CI_Model
     // $ids: 公開対象の複数ID
     // $atomic: true = トランザクションをこのメソッドで完結する
     //          false = 外部のメソッドでトランザクション処理を行う
-    public function publish_all($ids, $flg=true, $atomic=true)
+    public function publish_all($ids, $flg=true, $atomic=true, &$ret_err_id=[])
     {
         if (is_string($ids)) {
             $ids = explode(',', $ids);
@@ -555,14 +562,14 @@ class MY_Model extends CI_Model
 
         if ($atomic) $this->db->trans_begin();
 
-        $err_id = [];
+        $ret_err_id = [];
         foreach ($ids as $id) {
             $ret = $this->publish($id, $flg, false);
-            if (!$ret) $err_id[] = $id; // 処理失敗
+            if (!$ret) $ret_err_id[] = $id; // 処理失敗
         }
 
         $this->_last_save_data = null;
-        if (empty($err_id)) { // エラーなし
+        if (empty($ret_err_id)) { // エラーなし
             if ($atomic) $this->db->trans_commit(); // トランザクションコミット
 
             $this->_last_save_data = $ids; // 保存データを一時記録
@@ -570,15 +577,15 @@ class MY_Model extends CI_Model
         } else { // 失敗
             if ($atomic) $this->db->trans_rollback(); // トランザクションロールバック
 
-            log_message('error', sprintf('%sの一括公開に失敗しました。ID:%s 失敗したID:%s', $this->_entity_name, print_r($ids,true), print_r($err_id,true)));
+            log_message('error', sprintf('%sの一括公開に失敗しました。ID:%s 失敗したID:%s', $this->_entity_name, print_r($ids,true), print_r($ret_err_id,true)));
         }
-        return empty($err_id) ? true : false;
+        return empty($ret_err_id) ? true : false;
     }
 
     // データ保存処理
     // $data: 保存データ
     // $id: 更新対象のID(新規の場合はNULL)
-    // $publish: 公開保存するかどうか
+    // $publish: 公開保存するかどうか(指定しない場合はnullを指定)
     // $atomic: true = トランザクションをこのメソッドで完結する
     //          false = 外部のメソッドでトランザクション処理を行う
     // $callbacks: true=コールバック有効、false=コールバック無効
@@ -591,7 +598,6 @@ class MY_Model extends CI_Model
 
         $save = $data;
         $save = $this->_create_save_data($save, $mode, $publish); // 保存データの作成
-        if( in_array('temporary_blob', $this->_table_fields) ) $save['temporary_blob'] = '';
 
         if ($atomic) $this->db->trans_begin();
         $this->_last_save_data = null;
@@ -659,7 +665,7 @@ class MY_Model extends CI_Model
                 (is_array($value) && count($value))) $ret[$field] = $value;
             else $ret[$field] = null;
         }
-        if ($this->_field_exists('flg_publish') && is_bool($publish)) { // 公開フラグカラムが存在する場合
+        if ($publish !== null && $this->_field_exists('flg_publish')) { // 公開フラグカラムが存在する場合
             $ret['flg_publish'] = $publish ? 1 : 0;
         }
         return $ret;
@@ -957,7 +963,6 @@ class MY_Model extends CI_Model
     // 戻り値： 成功時=true 失敗時=false
     protected function _after_save($data, $id, $raw=[], $context='')
     {
-
         if (CMS_UPLOADER_ENABLED && !empty($this->_uploader_fields) && empty($raw['id'])) {
             // アップローダの設定があり、かつ新規作成の場合
 
@@ -1094,13 +1099,6 @@ class MY_Model extends CI_Model
     // publish_date_str: 表示用の公開期間テキスト
     protected function _append_data($data)
     {
-        if( is_admin() && !empty($data['temporary_blob'])){
-            $id = $data['id'];
-            $data = unserialize($data['temporary_blob']);
-            $data['id'] = $id;
-            $data['is_temporary'] = true;
-        }
-
         // 公開状態の計算
         if ($this->_field_exists('start_date') && $this->_field_exists('end_date')) {
             // 公開期間データが存在する
@@ -1119,7 +1117,7 @@ class MY_Model extends CI_Model
             }
             $date_disp_str[] = ' 〜 ';
             if (!empty($ed)) {
-                $st_tm = strtotime($st);
+                $st_tm = strtotime($st ?? '');
                 $ed_tm = strtotime($ed);
 
                 if (date('Y',$st_tm)==date('Y',$ed_tm)) {
@@ -1139,6 +1137,9 @@ class MY_Model extends CI_Model
             $data['during_term'] = true;
             $data['publish_date_str'] = null;
         }
+
+        // 見出し
+        $data['_title'] = $data[$this->_title_field] ?? null;
 
         return $data;
     }
@@ -1176,11 +1177,11 @@ class MY_Model extends CI_Model
     private function _search_published($data)
     {
         $now = date('Y-m-d H:i:s', NOW_TIME);
-        $cond = "flg_publish=1 AND (
-                    (start_date IS NULL AND end_date IS NULL) OR
-                    (start_date IS NULL AND end_date >= '{$now}') OR
-                    (start_date <= '{$now}' AND end_date IS NULL) OR
-                    (start_date <= '{$now}' AND end_date >= '{$now}')
+        $cond = "{$this->_table}.flg_publish=1 AND (
+                    ({$this->_table}.start_date IS NULL AND {$this->_table}.end_date IS NULL) OR
+                    ({$this->_table}.start_date IS NULL AND {$this->_table}.end_date >= '{$now}') OR
+                    ({$this->_table}.start_date <= '{$now}' AND {$this->_table}.end_date IS NULL) OR
+                    ({$this->_table}.start_date <= '{$now}' AND {$this->_table}.end_date >= '{$now}')
                 )";
         if (empty($data)) {
             $cond = "NOT ($cond)";
@@ -1192,72 +1193,64 @@ class MY_Model extends CI_Model
     // 下書き検索
     private function _search_draft($data)
     {
-        return "flg_publish = 0";
+        return "{$this->_table}.flg_publish = 0";
     }
 
-    // 一時保存
-    public function save_temporary($data, $id, $atomic=true, $callback=true)
+    // アクセストークンの発行
+    protected function _generate_access_token($len=30)
     {
-        if ($callback & method_exists($this, '_before_save')) {
-            // _before_saveコールバックが存在する
-            $data = $this->_before_save($data, $id, $data, 'temporary');
-            if ($data === false) { // 処理がエラーの場合
-                if ($atomic) $this->db->trans_rollback(); // 必要に応じてロークバック
-                return false;
+        $possible = '0123456789abcdefghijklmnopqrstuvwxyz';
+        $token = "";
+        $i = 0;
+
+        while ($i < $len) {
+            $char = substr($possible, mt_rand( 0, strlen( $possible ) - 1 ), 1);
+            if (!stristr( $token, $char)) {
+                $token .= $char;
+                $i++;
             }
         }
-        $save = [];
-        $save['modified'] = NOW;
-        $save['temporary_blob'] = serialize($data);
-        if( empty($id) ){
-            $save_id = $this->db->insert($this->_table, $save) ? $this->db->insert_id() : false;
-        }
-        else {
-            $save_id = $this->db->update($this->_table, $save, ['id' => $id]) ? $id : false;
-        }
-
-        $after_replicate_ret = true;
-        if ($save_id && $callback && method_exists($this, '_after_save')) {
-            // _after_saveコールバックが存在する
-            $after_save_ret = $this->_after_save($save, $save_id, $data, 'temporary');
-        }
-
-        if ($save_id && $after_save_ret && $after_replicate_ret) { // 保存成功
-            if ($atomic) $this->db->trans_commit(); // トランザクションコミット
-            $this->_last_save_data = $data; 
-            return $save_id;
-        }
-
-        return false;
-
-    }
-    // 一時保存
-    public function clear_temporary($id)
-    {
-        $save = [];
-        $save['modified'] = NOW;
-        $save['temporary_blob'] = null;
-        $this->_last_save_data = $this->get_by_id($id);
-        return $this->db->update($this->_table, $save, ['id' => $id]) ? $id : false;
+        return $token;
     }
 
-    public function get_data_for_preview($id_md5){
-        $this->preview_mode = true;
-        $results = $this->search([
-            'where' => [
-                'md5(id) = "'.$id_md5.'" '
-            ]
-        ]);
-        if( empty($results[0]) ) return [];
-        $data = $results[0];
-        if( !empty($data['temporary_blob']) ){
-            $id = $data['id'];
-            $data = unserialize($data['temporary_blob']);
-            $data['id'] = $id;
-            $data['is_temporary'] = true;
+    // ソート済みデータを取得する
+    public function get_sorted () {
+        $data = $this->db
+                    ->from($this->_table)
+                    ->order_by('sort_no', 'ASC')
+                    ->get()
+                    ->result_array();
+        // after findのコール
+        if (!empty($data) && method_exists($this, '_after_find')) {
+            $data = $this->_after_find($data);
         }
         return $data;
     }
 
+    // ソートを保存する
+    public function save_sorted ($ids) {
+        if (is_string($ids)) {
+            $ids = explode(',', $ids);
+        }
+        if (!empty($ids)) {
+            $this->db->trans_begin(); // トランザクション開始
 
+            $sort_no = 1;
+            foreach ($ids as $id) {
+                if (empty($id)) continue;
+                $save = [
+                    'sort_no' => $sort_no++,
+                ];
+                if ($this->db->update($this->_table, $save, ['id' => $id])) {
+                    log_message('debug', sprintf('%sの並び順保存に成功しました。DATA:%s', $this->_entity_name, print_r($save,true)));
+                } else {
+                    log_message('error', sprintf('%sの並び順保存に失敗しました。DATA:%s', $this->_entity_name, print_r($save,true)));
+                    $this->db->trans_rollback(); // トランザクションロールバック
+                    return false;
+                }
+            }
+            $this->db->trans_commit(); // トランザクションコミット
+        }
+        return true;
+    }
 }

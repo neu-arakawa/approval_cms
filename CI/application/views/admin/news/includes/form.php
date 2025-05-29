@@ -50,10 +50,10 @@
     </table>
 </div>
 
-<?php include_once VIEWPATH.'admin/common/publish_block_for_news.php'; ?>
+<?php include_once VIEWPATH.'admin/common/publish_block.php'; ?>
 
 <?php
-if (empty($confirm_flag)) echo admin_input_buttons(['temporary' => '一時保存（公開待機）']);
+if (empty($confirm_flag)) echo admin_input_buttons();
 else echo admin_confirm_buttons();
 ?>
 

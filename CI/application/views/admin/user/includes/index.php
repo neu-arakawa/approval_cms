@@ -45,7 +45,6 @@
                 <tr>
                     <th class="sorting" style="width:4rem"><?php echo sort_link('id', 'ID'); ?></th>
                     <th class="sorting" style=""><?php echo sort_link('name', 'name'); ?></th>
-                    <th class="sorting" style=""><?php echo sort_link('division', 'division'); ?></th>
                     <th class="sorting" style="width:8rem"><?php echo sort_link(AUTH_USER_FIELD, AUTH_USER_FIELD); ?></th>
                     <th class="sorting" style="width:4.5rem">権限</th>
                     <th class="sorting" style="width:13rem"><?php echo sort_link(AUTH_EMAIL_FIELD, 'email'); ?></th>
@@ -60,7 +59,6 @@
                 <tr>
                     <td><?php echo h($v['id']); ?></td>
                     <td class="text-left"><?php echo h($v['name']) ?></td>
-                    <td class="text-left"><?php echo h($v['division']) ?></td>
                     <td class="text-left"><?php echo h($v[AUTH_USER_FIELD]) ?></td>
                     <td><?php echo opt($v['flg_admin'], UserConf::$flg_admin_options) ?></td>
                     <td class="text-left"><?php echo h($v[AUTH_EMAIL_FIELD],'(未設定)') ?></td>

@@ -14,24 +14,19 @@ class News_model extends MY_Model
 
         $now = date('Y-m-d H:i:s', NOW_TIME);
         $last_year = date('Y-m-d', strtotime('-1 year', strtotime(NOW)));
-        $cond = "
-                flg_publish=1 and
-                (
-                    publish_term=0 or
-                    ( 
-                        publish_term=1 AND (
-                            (start_date IS NULL AND end_date >= '{$now}') OR
-                            (start_date <= '{$now}' AND end_date IS NULL) OR
-                            (start_date <= '{$now}' AND end_date >= '{$now}')
-                        )
-                    ) or 
-                    (
-                        publish_term=2 AND 
-                        disp_date >= '{$last_year}'
-                    )
-                ) ";
-
-        $this->_search_options['where'] = [$cond];
+        $this->_search_options = [
+            'order_by' => ['disp_date'=>'DESC', 'modified'=>'DESC'],
+            'where' => [
+                'flg_publish' => 1,
+                "(
+                    (start_date IS NULL AND end_date IS NULL) OR
+                    (start_date <= '".NOW."' AND end_date >= '".NOW."') OR
+                    (start_date IS NULL AND end_date >= '".NOW."') OR
+                    (start_date <= '".NOW."' AND end_date IS NULL)
+                )",
+            ],
+            'limit' => 20,
+        ];
     }
 
     protected function _append_data($data)

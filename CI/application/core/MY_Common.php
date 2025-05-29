@@ -132,11 +132,25 @@ function convert_keyword( $word )
 // 現在が指定の期間内かどうか判定する
 function during_term( $st=null, $ed=null )
 {
-    if( empty( $st ) ) $st = strtotime('1970-01-01 00:00:00');
-    else $st = strtotime($st);
+    if( empty( $st ) ) {
+        $st = strtotime('1970-01-01 00:00:00');
+    } else {
+        if (preg_match('/^\d{4}[\-\]\d{1,2}[\-\/]\d{1,2}$/', $st)) {
+            // 時刻なしの場合
+            $st .= ' 00:00:00';
+        }
+        $st = strtotime($st);
+    }
 
-    if( empty( $ed ) ) $ed = strtotime('2037-12-12 23:59:59');
-    else $ed = strtotime($ed);
+    if( empty( $ed ) ) {
+        $ed = strtotime('2037-12-12 23:59:59');
+    } else {
+        if (preg_match('/^\d{4}[\-\/]\d{1,2}[\-\/]\d{1,2}$/', $ed)) {
+            // 時刻なしの場合
+            $ed .= ' 23:59:59';
+        }
+        $ed = strtotime($ed);
+    }
 
     return $st <= NOW_TIME && NOW_TIME <= $ed;
 }
@@ -197,6 +211,29 @@ function load_model ($name)
     return null;
 }
 
+// 配列内でいずれかの項目が指定されているかどうか
+function any_in_array ($fields, $array, $index=null) {
+    if (!is_array($fields) || !is_array($array)) return false;
+
+    foreach ($fields as $f) {
+        if ($index===null) {
+            $v = !empty($array[$f]) ? $array[$f] : null;
+        } else {
+            $v = !empty($array[$f][$index]) ? $array[$f][$index] : null;
+        }
+        if ($v) return true;
+    }
+    return false;
+}
+
+function pascalize($string)
+{
+    $string = strtolower($string);
+    $string = str_replace('_', ' ', $string);
+    $string = ucwords($string);
+    $string = str_replace(' ', '', $string);
+    return $string;
+}
 function ddl($var)
 {
     if (is_string($var) == false) {
@@ -214,38 +251,6 @@ if (!function_exists('pr')) {
     }
 }
 
-// 診療受付時間パターンの取得
-function get_reception_pattern($target_date)
-{
-    $CI = get_instance();
-    $CI->load_model(['Option']);
-
-    //　祝日かどうか
-    $holiday = $CI->Option->get_option('holiday');
-    if( !empty($holiday) )
-        $holiday = explode("\n", $holiday);
-
-    $holiday = array_filter($holiday, function($k) use ($target_date){
-        return strtotime($k) == strtotime($target_date);
-    });
-
-    if( !empty($holiday)) return  'holiday';
-
-    // 平日か、第1,3,5土曜日か
-    $date = new DateTime($target_date);
-    $dayOfWeek = $date->format('w');
-    $weekNumber = (int)ceil((date('d', 
-        strtotime($target_date)) + date('w', strtotime(date('Y-m-01', strtotime($target_date)))) - 1) / 7);
-
-    if ($dayOfWeek === '0' || ($dayOfWeek === '6' && ($weekNumber === 2 || $weekNumber === 4))) {
-        return 'holiday';
-    }
-    else if ($dayOfWeek === '6' && ($weekNumber === 1 || $weekNumber === 3 || $weekNumber === 5)) {
-        return 'special_saturday';
-    }
-
-    return 'workday';
-}
 
 function is_admin(){
     $_SERVER['REQUEST_URI_PATH'] = parse_url(@$_SERVER['REQUEST_URI'], PHP_URL_PATH);
@@ -253,32 +258,19 @@ function is_admin(){
     return in_array(ADMIN_DIR_NAME, $segments);
 }
 
-function syllabary($str){
-	$charset='utf-8';
-	if(empty($str)){
-		return false;
-	}
-    $str = mb_substr(trim($str), 0, 1);
-	$katakana=array(
-		array('あ','アイウエオ'),
-		array('か','カキクケコガギグゲゴ'),
-		array('さ','サシスセソザジズゼゾ'),
-		array('た','タチツテトダヂヅデド'),
-		array('な','ナニヌネノ'),
-		array('は','ハヒフヘホバビブベボパピプペポ'),
-		array('ま','マミムメモ'),
-		array('や','ヤユヨ'),
-		array('ら','ラリルレロ'),
-		array('わ','ワヲン')
-	);
-	$arr=$katakana;
-	$str=mb_convert_kana($str,"C",$charset);
-	$head=mb_substr($str,0,1,$charset);
-	foreach($arr as $v){
-		if(mb_strpos($v[1],$head,0,$charset)!==false){
-			return $v[0];
-		}
-	}
+if (!function_exists('array_key_first')) {
+    function array_key_first(array $arr) {
+        foreach($arr as $key => $unused) {
+            return $key;
+        }
+        return NULL;
+    }
+}
+
+if( !function_exists('array_key_last') ) {
+    function array_key_last(array $array) {
+        if( !empty($array) ) return key(array_slice($array, -1, 1, true));
+    }
 }
 
 $_ = function($s){return $s;};//展開用

@@ -10,13 +10,3 @@
     <?php echo admin_form_hidden_raw('created');?>
 </div>
 <?php endif?>
-
-<?php if( !empty($current_data['is_temporary']) ){ ?>
-<div class="p-3 bg-info -temporary" style='font-weight:600;'>
-    この記事は一時保存状態です。保存すると公開記事と差し替えします。
-<small><a href="javascript:void(0);" onclick="var ok=confirm('一時保存の内容をクリアします');
-if (ok) location.href='<?= admin_base_url("$controller/clear_temporary/". $current_data['id']) ?>'; 
-return false;"> >>>もとに戻す</a></small></div>
-<?php } ?>
-
-

@@ -44,7 +44,6 @@
             }?>
             <?php echo admin_form_input('name', null, null, 'col-lg-12');?>
             <?php echo admin_form_input(AUTH_EMAIL_FIELD, null, null, 'col-lg-12');?>
-            <?php echo admin_form_input('division', null, null, 'col-lg-12');?>
         </tbody>
         <tfoot>
         </tfoot>

@@ -10,7 +10,7 @@ class Admin_news_model extends MY_Model
         'order_by' => ['modified'=>'DESC', 'id'=>'DESC'],
     ];
     protected $_search_fields = [ // 検索処理用の定義
-        'keyword' => ['type'=>'query', 'method'=>'_search_keyword', 'field'=>['title','content_html','search_text']],
+        'keyword' => ['type'=>'query', 'method'=>'_search_keyword', 'field'=>['title','content_html']],
         'published' => ['type'=>'query', 'method'=>'_search_published_for_news'],
         'draft' => ['type'=>'query', 'method'=>'_search_draft'],
         'category_id' => ['type'=>'value']
@@ -35,12 +35,6 @@ class Admin_news_model extends MY_Model
         $data['detail_url'] = base_url('/news/detail/'.$data['id']); // 詳細画面URLの追加
         // $data['disp_place'] = explode(',', $data['disp_place']);
         
-        if( !empty($data['published']) && $data['publish_term'] == 2 ){
-            $last_year = date('Y-m-d', strtotime('-1 year', strtotime(NOW)));
-            if($last_year > $data['disp_date']){
-                $data['published'] = false;
-            }
-        } 
         return $data;
     }
 
