@@ -1,0 +1,168 @@
+.ve {
+  padding: 5px;
+  margin: 0 0 1em 0;
+}
+
+.ve * {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  text-decoration: none;
+  color: #000;
+  font-family: "Helvetica Neue",Helvetica,Arial,sans-serif;
+  font-size: 1rem;
+  font-height: 1.4em;
+  text-shadow: none;
+  float: none;
+  position: static;
+  width: auto;
+  height: auto;
+  cursor: inherit;
+  -webkit-tap-highlight-color: transparent;
+  line-height: normal;
+  font-weight: normal;
+  text-align: left;
+  box-sizing: content-box;
+  direction: ltr;
+  max-width: none;
+}
+
+.ve *:before {
+  content: none !important;
+}
+
+.ve h3, .ve h4, .ve h5, .ve p, .ve .image-wrap, .ve .link-wrap {
+  margin: 10px 0;
+}
+
+.ve h3 {
+  font-size: 1.6rem !important;
+  font-weight: bold;
+  border-bottom: 1px solid gray;
+  margin: 0 0 10px 0;
+  line-height: 1.4em;
+}
+
+.ve h4 {
+  font-size: 1.4rem !important;
+  font-weight: bold;
+  line-height: 1.4em;
+}
+
+.ve h5 {
+  font-size: 1.2rem !important;
+  font-weight: bold;
+  line-height: 1.4em;
+}
+
+.ve p {
+  font-size: 1rem !important;
+  font-weight: normal;
+  line-height: 1.4em;
+}
+
+.ve ul {
+  margin: 0;
+  padding: 1.3rem;
+}
+
+.ve ul li {
+  list-style-type: disc;
+}
+
+.ve .image-wrap .img {
+  position: relative;
+  max-width: 50%;
+}
+
+.ve .image-wrap .img img {
+  display: inline-block;
+  width: 100%;
+}
+
+.ve .image-wrap .img-left {
+  float: left;
+  margin: 0 5px 0 0;
+}
+
+.ve .image-wrap .img-right {
+  float: right;
+  margin: 0 0 0 5px;
+}
+
+.ve .image-wrap .img-center {
+  text-align: center;
+  width: 100%;
+  max-width: 100%;
+  display: block;
+}
+
+.ve .image-wrap .img-center img {
+  max-width: 80%;
+  width: auto;
+}
+
+.ve .image-wrap .text {
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+  outline: none;
+  width: 100%;
+  font-size: 1rem;
+}
+
+.ve .image-wrap .img-left + .text {
+  padding: 5px 5px 0 0;
+}
+
+.ve .image-wrap .img-right + .text {
+  padding: 5px 0 0 5px;
+}
+
+.ve .image-wrap .img-center + .text {
+  padding: 5px 5px 0 5px;
+}
+
+.ve .image-wrap .text:after {
+  content: " ";
+  display: block;
+  clear: both;
+}
+
+.ve .link-wrap a, .ve .link-wrap a:visited {
+  color: #00f;
+  text-decoration: underline;
+}
+
+.ve .link-wrap li {
+  font-size: 1rem;
+}
+
+.ve table {
+  border-collapse: collapse;
+  margin: 10px 0;
+  table-layout: fixed;
+  width: 100%;
+}
+
+.ve table, .ve th, .ve td {
+  border: 1px solid gray;
+}
+
+.ve th, .ve td {
+  padding: .2rem .5rem;
+}
+
+.ve td {
+  background-color: #fff;
+}
+
+.ve th {
+  background-color: #eee;
+  font-weight: bold;
+}
+
+.ve tbody th {
+  width: 10rem;
+}

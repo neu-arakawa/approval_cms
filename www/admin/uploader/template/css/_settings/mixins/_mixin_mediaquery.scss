@@ -1,0 +1,11 @@
+@mixin mq-pc {
+  @media screen and (min-width: $break-small + 1) {
+    @content;
+  }
+}
+
+@mixin mq-sp {
+  @media screen and (max-width: $break-small) {
+    @content;
+  }
+}

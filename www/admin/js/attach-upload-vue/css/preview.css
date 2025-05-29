@@ -1,0 +1,124 @@
+.attach-preview {
+  padding: 5px;
+}
+
+.attach-preview * {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  text-decoration: none;
+  color: #000;
+  font-family: "Helvetica Neue",Helvetica,Arial,sans-serif;
+  font-height: 1.4em;
+  font-size: 1rem;
+  text-shadow: none;
+  float: none;
+  position: static;
+  width: auto;
+  height: auto;
+  cursor: inherit;
+  -webkit-tap-highlight-color: transparent;
+  line-height: normal;
+  font-weight: normal;
+  text-align: left;
+  box-sizing: content-box;
+  direction: ltr;
+  max-width: none;
+}
+
+.attach-preview img {
+  max-height: 800px;
+  max-width: 500px;
+  position: relative;
+  z-index: 2;
+}
+
+.attach-preview a {
+  cursor: pointer;
+  display: inline-block;
+  box-sizing: border-box;
+  width: 100%;
+  border: 1px solid #ddd;
+  padding: 15px 10px 15px 40px;
+  color: #00f;
+  background-color: #fff;
+  background-repeat: no-repeat;
+  background-size: 25px 25px;
+  background-position: 10px 50%;
+  background-image: url(img/file.svg);
+}
+
+.attach-preview a[href$=".bmp"] {
+  background-image: url(img/bmp.svg);
+}
+
+.attach-preview a[href$=".png"] {
+  background-image: url(img/png.svg);
+}
+
+.attach-preview a[href$=".jpg"] {
+  background-image: url(img/jpg.svg);
+}
+
+.attach-preview a[href$=".gif"] {
+  background-image: url(img/gif.svg);
+}
+
+.attach-preview a[href$=".pdf"] {
+  background-image: url(img/pdf.svg);
+}
+
+.attach-preview a[href$=".svg"] {
+  background-image: url(img/svg.svg);
+}
+
+.attach-preview a[href$=".doc"], .attach-preview a[href$=".docx"] {
+  background-image: url(img/doc.svg);
+}
+
+.attach-preview a[href$=".xls"], .attach-preview a[href$=".xlsx"] {
+  background-image: url(img/xls.svg);
+}
+
+.attach-preview a[href$=".ppt"], .attach-preview a[href$=".pptx"] {
+  background-image: url(img/ppt.svg);
+}
+
+.attach-preview a[href$=".txt"] {
+  background-image: url(img/txt.svg);
+}
+
+.attach-preview a[href$=".mov"] {
+  background-image: url(img/mov.svg);
+}
+
+.attach-preview a[href$=".mp3"] {
+  background-image: url(img/mp3.svg);
+}
+
+.attach-preview a[href$=".mp4"] {
+  background-image: url(img/mp4.svg);
+}
+
+.attach-preview a[href$=".rar"] {
+  background-image: url(img/rar.svg);
+}
+
+.attach-preview a[href$=".zip"] {
+  background-image: url(img/zip.svg);
+}
+
+.attach-preview a[href$=".wav"] {
+  background-image: url(img/wav.svg);
+}
+
+.attach-preview a[href$=".wmv"] {
+  background-image: url(img/wmv.svg);
+}
+
+.attach-preview a:after {
+  content: " \f08e";
+  font-family: FontAwesome;
+}

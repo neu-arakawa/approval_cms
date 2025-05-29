@@ -1,0 +1,22 @@
+tar cvf 0716up.tar \
+application/config/validation/form_validation_admin.php \
+application/controllers/Department.php \
+application/controllers/admin/Department.php \
+application/controllers/admin/Department_page.php \
+application/controllers/admin/News.php \
+application/controllers/admin/Topic.php \
+application/core/Admin_Controller.php \
+application/language/japanese/form_validation_lang.php \
+application/libraries/MY_Form_validation.php \
+application/models/admin/Admin_department_model.php \
+application/models/admin/Admin_news_model.php \
+application/models/admin/Admin_topic_model.php \
+application/views/admin/department/includes/form.php \
+application/views/admin/department/includes/index.php \
+application/views/admin/department_page/includes/form.php \
+application/views/admin/department_page/includes/index.php \
+application/views/admin/doctor/includes/index.php \
+application/views/admin/news/includes/form.php \
+application/views/admin/news/includes/index.php \
+application/views/admin/topic/includes/form.php \
+application/views/admin/topic/includes/index.php \

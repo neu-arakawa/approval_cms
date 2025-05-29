@@ -1,0 +1,27 @@
+@mixin at-least($count, $selector) {
+  #{$selector}:nth-last-child(n+#{$count}),
+  #{$selector}:nth-last-child(n+#{$count}) ~ #{$selector} {
+    @content;
+  }
+}
+
+@mixin at-most($count, $selector) {
+  #{$selector}:nth-last-child(-n+#{$count}):first-child,
+  #{$selector}:nth-last-child(-n+#{$count}):first-child ~ #{$selector} {
+    @content;
+  }
+}
+
+@mixin between($start, $end, $selector) {
+  #{$selector}:nth-last-child(n+#{$start}):nth-last-child(-n+#{$end}):first-child,
+  #{$selector}:nth-last-child(n+#{$start}):nth-last-child(-n+#{$end}):first-child ~ #{$selector} {
+    @content;
+  }
+}
+
+@mixin exactly($count, $selector) {
+  #{$selector}:nth-last-child(#{$count}):first-child,
+  #{$selector}:nth-last-child(#{$count}):first-child ~ #{$selector} {
+    @content;
+  }
+}

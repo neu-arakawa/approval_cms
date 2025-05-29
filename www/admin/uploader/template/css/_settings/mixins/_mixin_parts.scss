@@ -1,0 +1,33 @@
+@mixin css3($property, $value) {
+  @each $prefix in -webkit-, -moz-, -ms-, -o-, '' {
+    #{$prefix}#{$property}: $value;
+  }
+}
+
+@mixin contents {
+  margin: 0 auto;
+  width: $contents-width;
+}
+
+@mixin hide-text {
+  text-indent: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  zoom: 1;
+}
+
+@mixin transition($tr) {
+  -webkit-transition: $tr;
+  transition: $tr;
+}
+
+@mixin transform($trsf) {
+  -webkit-transform: $trsf;
+  -ms-transform: $trsf;
+  transform: $trsf;
+}
+
+@mixin font-smoothing{
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}

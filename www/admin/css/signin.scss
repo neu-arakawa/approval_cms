@@ -1,0 +1,54 @@
+// ログイン画面
+.signin {
+  height: 100%;
+  background-color: #f3f3f3;
+  .container {
+    position: relative;
+    top: 50%;
+    transform: translateY(-50%);
+    background-color: #fff;
+    padding: 2.7rem 2rem 4rem 2rem;
+    width: 50%;
+    min-width:768px;
+    border: 1px solid #ddd;
+    box-shadow: 0px 1px 15px 0px rgba(0, 0, 0, 0.08);
+    border-radius: 10px;
+    box-sizing: border-box;
+  }
+  h1 {
+    text-align: center;
+  }
+  h2 {
+    font-size: 1rem;
+    text-align: center;
+    margin-bottom: 1.2em;
+    font-weight: bold;
+    position: relative;
+  }
+  form {
+    max-width: 500px;
+    padding: 15px;
+    margin: 0 auto;
+    input {
+      background-color: #f7f7f7;
+      height: 3rem;
+    }
+  }
+  .validate{
+    h3 {
+      font-size: 1.2rem;
+    }
+  }
+}
+
+@include mq-max{
+  .signin {
+    .container {
+      padding: 2.7rem 1rem 4rem 1rem;
+      min-width: 90%;
+      h2{
+        white-space: nowrap;
+      }
+    }
+  } 
+}

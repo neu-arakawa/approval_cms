@@ -1,0 +1,234 @@
+.bootstrap-datetimepicker-widget {
+  left: 0;
+  >.row {
+    margin-right: inherit;
+    margin-left: inherit;
+    align-items: center;
+    position: relative;
+    >.datepicker,
+    >.timepicker {
+      padding-left: inherit;
+      padding-right: inherit;
+    }
+    >.datepicker{
+      flex: 0 0 55%;
+      max-width: 55%;
+    }
+    >.timepicker {
+      max-width: 45%;
+      position: absolute;
+      right: 0;
+      //top: 53px;
+      top:0;
+      height:100%; 
+      .timepicker-picker {
+        width: 80%;
+        position: absolute;
+        top: 50%;
+        transform: translateY(-50%) translateX(-50%);
+        left: 50%;
+      }
+      .table-condensed {
+        border-collapse: separate;
+        tr {
+          td {
+            padding: 0;
+          }
+          &:first-child {
+            td {
+              padding-bottom: 10px;
+            }
+          }
+          &:last-child {
+            td {
+              padding-top: 10px;
+            }
+          }
+        }
+        * {
+          border: none;
+        }
+        .btn {
+          line-height: 0;
+        }
+      }
+    }
+  }
+  * {
+    box-sizing: border-box;
+  }
+  .glyphicon{
+    position: relative;
+    display: block;
+  }
+  .glyphicon-chevron-up,
+  .glyphicon-chevron-down,
+  .glyphicon-chevron-left,
+  .glyphicon-chevron-right {
+    //background-color: #d2d2d2;
+    position: relative;
+    &:before {
+      content: "";
+      line-height: 0;
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translateX(-50%) translateY(-50%);
+      color: #000;
+    }
+  }
+  .glyphicon-chevron-up {
+    &:before {
+      font-family: fontAwesome;
+      content: "\f106";
+    }
+  }
+  .glyphicon-chevron-down {
+    &:before {
+      font-family: fontAwesome;
+      content: "\f107";
+    }
+  }
+  .glyphicon-chevron-left {
+    &:before {
+      content: "\00ab";
+      transform: translateX(-50%) translateY(-50%);
+      @include vw(top,-10px);
+    }
+  }
+  .glyphicon-chevron-right {
+    &:before {
+      content: "\00bb";
+      transform: translateX(-50%) translateY(-50%);
+      @include vw(top,-10px);
+    }
+  }
+  a[data-action] {
+    padding: 0;
+  }
+  
+}
+
+@include mq-max{
+  .bootstrap-datetimepicker-widget {
+    width: auto!important;
+    left: auto;
+    right:0;
+    >.row {
+      >.timepicker {
+        max-width: 100%;
+        position: relative;
+        right: auto;
+        top: auto;
+        height: auto;
+        .timepicker-picker {
+          width: 80%;
+          position: relative;
+          top: auto;
+          transform: translateY(0) translateX(-50%);
+        }
+        
+      }
+    }
+    * {
+      box-sizing: border-box;
+    }
+    .glyphicon-chevron-up,
+    .glyphicon-chevron-down {
+      background-color: #f5f5f5;
+      position: relative;
+    }
+    a[data-action] {
+      padding: 0;
+    }
+    
+    
+  }
+}
+
+.datepicker-days,.datepicker-months,.datepicker-years{
+
+  .table-condensed {
+    width: 100%;
+  border-collapse: separate;
+  border-spacing: 5px;
+  td,th{
+    line-height: 1;
+    height: auto!important;
+    padding: .5em!important;
+  }
+  }
+}
+.timepicker-hours,
+.timepicker-minutes {
+  z-index: 9;
+  padding: 10px;
+  background-color: #fff;
+  border: solid #f5f5f5 2px;
+  border-radius: 8px;
+  .table-condensed {
+    td {
+      padding: 8px 0 !important;
+    }
+  }
+}
+
+.popover.bs-popover-auto[x-placement^=top] .arrow::after,
+.popover.bs-popover-top .arrow::after {
+  margin-left: .8rem;
+}
+
+.popover.bs-popover-auto[x-placement^=top] .arrow::before,
+.popover.bs-popover-top .arrow::before {
+  margin-left: .8rem;
+}
+
+.popover.bs-popover-auto[x-placement^=right] .arrow::after,
+.popover.bs-popover-auto[x-placement^=right] .arrow::before,
+.popover.bs-popover-right .arrow::after,
+.popover.bs-popover-right .arrow::before {
+  margin-top: .8rem;
+}
+
+.popover.bs-popover-auto[x-placement^=bottom] .arrow::after,
+.popover.bs-popover-auto[x-placement^=bottom] .arrow::before,
+.popover.bs-popover-bottom .arrow::after,
+.popover.bs-popover-bottom .arrow::before {
+  margin-left: .8rem;
+}
+
+.popover.bs-popover-auto[x-placement^=left] .arrow::after,
+.popover.bs-popover-auto[x-placement^=left] .arrow::before,
+.popover.bs-popover-left .arrow::after,
+.popover.bs-popover-left .arrow::before {
+  margin-top: .8rem;
+}
+
+/**
+* ü\´µ¤­³ö¤·
+*/
+
+.tooltip.bs-tooltip-auto[x-placement^=top] .arrow::before,
+.tooltip.bs-tooltip-top .arrow::before {
+  margin-left: 8px;
+}
+
+.tooltip.bs-tooltip-auto[x-placement^=right] .arrow::before,
+.tooltip.bs-tooltip-right .arrow::before {
+  margin-top: 8px;
+}
+
+.tooltip.bs-tooltip-auto[x-placement^=bottom] .arrow::before,
+.tooltip.bs-tooltip-bottom .arrow::before {
+  margin-left: 8px;
+}
+
+.tooltip.bs-tooltip-auto[x-placement^=left] .arrow::before,
+.tooltip.bs-tooltip-left .arrow::before {
+  margin-top: 8px;
+}
+
+.datepicker{
+  flex:auto!important;
+  max-width: 100%!important;
+}

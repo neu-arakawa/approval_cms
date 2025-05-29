@@ -1,0 +1,79 @@
+.label-input {
+    vertical-align: middle;
+    position: relative;
+    padding: 5px 10px;
+    color: #495057;
+    background-color: #fff;
+    background-clip: padding-box;
+    border: 1px solid #ced4da;
+    border-radius: .25rem;
+    transition: border-color .15s ease-in-out,box-shadow .15s ease-in-out;
+    margin:0;
+}
+.label-input.readonly {
+    border: 0;
+    padding: 0;
+}
+.label-input.focus {
+    color: #495057;
+    background-color: #fff;
+    border-color: #80bdff;
+    outline: 0;
+    box-shadow: 0 0 0 0.2rem rgba(0,123,255,.25);
+}
+
+.label-input li {
+    list-style-type: none;
+    display: inline-block;
+    vertical-align: middle;
+}
+.label-input li.label {
+    border-radius: 4px;
+    font-size: .9rem;
+    background-color: rgba(169, 220, 255, 1.0);
+    padding: 2px 18px 2px 5px;
+    position: relative;
+    overflow: hidden;
+    margin-top: 5px;
+    margin-bottom: 5px;
+    /* margin-right は JSにて設定するのでここでは設定しないこと */
+}
+.label-input li.input {
+
+}
+/* 閉じるボタン */
+.label-input .label .close {
+    position: absolute;
+    height: 100%;
+    width: 15px;
+    display: block;
+    box-sizing: border-box;
+    right: 0;
+    top: 0;
+    background-color: rgba(0, 123, 255, 1.0);
+    text-align: center;
+}
+.label-input .label .close::before {
+    font-family: FontAwesome;
+    content: "\f00d";
+    font-size: .8rem;
+    padding: 0;
+    margin: 0;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    color: #fff;
+    text-shadow: none;
+}
+/* 入力エリア */
+.label-input input {
+    width: 100%;
+    border: 0;
+    padding: 0;
+    outline: none;
+}
+.label-input input:focus {
+    border: 0;
+    box-shadow: none;
+}

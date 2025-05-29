@@ -1,0 +1,9 @@
+@mixin inblock-parent {
+  letter-spacing: -.40em;
+}
+
+@mixin inblock {
+  display: inline-block;
+  letter-spacing: normal;
+  vertical-align: middle;
+}

@@ -1,0 +1,48 @@
+<ifModule mod_setenvif.c>
+	SetEnvIf Host example DEVL
+</IfModule>
+
+<ifModule mod_headers.c>
+	Header always append X-Frame-Options SAMEORIGIN
+	Header set X-Content-Type-Options "nosniff"
+	<Files ~ "\.(jpe?g|gif|ico|png|css|js|html)$">
+		Header set Cache-Control "max-age=600, public" env=!DEVL
+		Header set Cache-Control "max-age=0, public" env=DEVL
+	</Files>
+</IfModule>
+
+<IfModule mod_deflate.c>
+	SetOutputFilter DEFLATE
+
+	# for legacy browser
+	BrowserMatch ^Mozilla/4\.0[678] no-gzip
+	BrowserMatch ^Mozilla/4 gzip-only-text/html
+	BrowserMatch \bMSIE\s(7|8) !no-gzip !gzip-only-text/html
+
+	# do not compress binary data
+	SetEnvIfNoCase Request_URI \.(?:gif|jpe?g|png|ico|pdf)$ no-gzip dont-vary
+</IfModule>
+
+
+<IfModule mod_rewrite.c>
+	RewriteEngine On
+	RewriteBase /
+
+	# for file uploader
+	RewriteCond %{REQUEST_URI} ^/cms_upload/
+	RewriteRule ^ ci.php [QSA,E=HTTP_AUTHORIZATION:%{HTTP:Authorization},L]
+    
+    # for Normalization
+    # RewriteCond %{REQUEST_URI} index\.(html|php)$
+    # RewriteRule ^(.*?)index.(html|php)$ http://%{HTTP_HOST}/$1 [R=301,L]
+
+    # for Partial CMS
+    # RewriteRule ^index.php$ ci.php [L]
+
+	# for CodeIgniter
+	RewriteCond %{REQUEST_URI} !^/nu-recruit/
+	RewriteCond %{REQUEST_FILENAME} !-f
+	RewriteCond %{REQUEST_FILENAME}index.php !-f
+	RewriteRule ^(.*)$ ci.php/$1 [E=HTTP_AUTHORIZATION:%{HTTP:Authorization},L]
+
+</IfModule>

@@ -1,0 +1,67 @@
+header {
+  display: none; }
+
+#sidenavi {
+  display: none; }
+
+#profiler_wrap {
+  display: none; }
+
+main {
+  margin: 0 15rem 0 0 !important; }
+
+body {
+  -webkit-print-color-adjust: exact;
+  background-color: #fff !important; }
+
+.table {
+  border: 1px solid #bbb !important; }
+  .table tr {
+    border: 1px solid #bbb !important; }
+  .table th {
+    background-color: #dadada !important;
+    color: #000 !important;
+    border: 1px solid #bbb !important; }
+  .table td {
+    border: 1px solid #bbb !important; }
+
+.pagination li a {
+  border-color: #bbb !important; }
+
+.badge.required {
+  background-color: #F1D0C2 !important;
+  color: #333 !important;
+  border: 1px solid #E96453 !important; }
+
+.btn {
+  background-color: #ccc !important;
+  color: #000 !important;
+  border-right-width: 3px !important;
+  border-bottom-width: 3px !important; }
+
+.input-group-append .btn {
+  border-right-width: 1px !important;
+  border-bottom-width: 1px !important; }
+
+.badge {
+  border: 1px solid #888; }
+
+.content-header {
+  border: 1px dashed #999; }
+
+.edit-box, .list-box {
+  border: 0 !important;
+  background-color: #fff !important; }
+
+.edit-buttons {
+  border: 0 !important; }
+
+input, textarea, select {
+  border-color: #888 !important; }
+
+.pagetop {
+  display: none; }
+
+tr.disabled td {
+  background-color: #ddd !important;
+  color: #000 !important; }

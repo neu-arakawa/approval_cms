@@ -1,0 +1,124 @@
+.inline-editor .ve-field,
+.inline-preview {
+  font-size: 1rem;
+}
+
+.inline-editor .ve-field span.bold,
+.inline-preview span.bold {
+  font-weight: bold;
+}
+
+.inline-editor .ve-field span.highlight,
+.inline-preview span.highlight {
+  background-color: #F3EE49;
+}
+
+.inline-editor .ve-field span.annotation,
+.inline-preview span.annotation {
+  font-size: 0.8rem;
+  color: #777;
+  vertical-align: top;
+}
+
+.inline-editor .ve-field a, .inline-editor .ve-field a:visited,
+.inline-preview a,
+.inline-preview a:visited {
+  color: #00f;
+  text-decoration: underline;
+}
+
+.inline-editor .ve-field span.red,
+.inline-preview span.red {
+  color: #b4404f;
+}
+
+.inline-editor .ve-field span.pink,
+.inline-preview span.pink {
+  color: #b87392;
+}
+
+.inline-editor .ve-field span.purple,
+.inline-preview span.purple {
+  color: #9364af;
+}
+
+.inline-editor .ve-field span.blue,
+.inline-preview span.blue {
+  color: #4975b6;
+}
+
+.inline-editor .ve-field span.lightblue,
+.inline-preview span.lightblue {
+  color: #60a8b8;
+}
+
+.inline-editor .ve-field span.green,
+.inline-preview span.green {
+  color: #559e61;
+}
+
+.inline-editor .ve-field span.orange,
+.inline-preview span.orange {
+  color: #c98a5c;
+}
+
+.inline-editor .ve-field span.gray,
+.inline-preview span.gray {
+  color: #adadad;
+}
+
+.inline-editor .ve-field span.beta__red,
+.inline-preview span.beta__red {
+  background-color: #b4404f;
+  padding: 2px;
+  color: #fff;
+}
+
+.inline-editor .ve-field span.beta__pink,
+.inline-preview span.beta__pink {
+  background-color: #b87392;
+  padding: 2px;
+  color: #fff;
+}
+
+.inline-editor .ve-field span.beta__purple,
+.inline-preview span.beta__purple {
+  background-color: #9364af;
+  padding: 2px;
+  color: #fff;
+}
+
+.inline-editor .ve-field span.beta__blue,
+.inline-preview span.beta__blue {
+  background-color: #4975b6;
+  padding: 2px;
+  color: #fff;
+}
+
+.inline-editor .ve-field span.beta__lightblue,
+.inline-preview span.beta__lightblue {
+  background-color: #60a8b8;
+  padding: 2px;
+  color: #fff;
+}
+
+.inline-editor .ve-field span.beta__green,
+.inline-preview span.beta__green {
+  background-color: #559e61;
+  padding: 2px;
+  color: #fff;
+}
+
+.inline-editor .ve-field span.beta__orange,
+.inline-preview span.beta__orange {
+  background-color: #c98a5c;
+  padding: 2px;
+  color: #fff;
+}
+
+.inline-editor .ve-field span.beta__gray,
+.inline-preview span.beta__gray {
+  background-color: #adadad;
+  padding: 2px;
+  color: #fff;
+}
