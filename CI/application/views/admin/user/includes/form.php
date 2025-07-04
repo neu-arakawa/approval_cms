@@ -32,16 +32,12 @@
             ?>
             <?php
             if (!empty($this->my_session->admin->flg_admin)){ // 管理権限あり
-                $col = admin_form_radio_raw('flg_admin', UserConf::$flg_admin_options, DEFAULT_USER_FLG_ADMIN, ['empty'=>false, 'inline'=>true]);
+                $col = admin_form_radio_raw('role_id', UserConf::$role_options, DEFAULT_USER_FLG_ADMIN, ['empty'=>false, 'inline'=>true]);
             } else { // 管理権限なし
-                $col = opt($this->my_session->admin->flg_admin, UserConf::$flg_admin_options);
+                $col = opt($this->my_session->admin->role, UserConf::$role_options);
             }
-            echo admin_form_row($col, 'flg_admin', ['inline'=>true], 'col-lg-12');
+            echo admin_form_row($col, 'role_id', ['inline'=>true], 'col-lg-12');
             ?>
-            <?php
-            if (!empty($this->my_session->admin->flg_admin)){ // 管理権限あり
-                echo admin_form_checkbox('flg_acl[]', UserConf::$perm_options, null, ['inline'=>true, 'notice'=>'権限が管理者の場合は、この設定に関わらず全ての操作が許可されます'], 'col-lg-12');
-            }?>
             <?php echo admin_form_input('name', null, null, 'col-lg-12');?>
             <?php echo admin_form_input(AUTH_EMAIL_FIELD, null, null, 'col-lg-12');?>
         </tbody>
@@ -69,21 +65,19 @@ function _pw(force){
     else $pw_rows.hide();
 }
 
-var $admin = $('input[name="flg_admin"]');
+var $admin = $('input[name="role"]');
 var $perms = $('input[name="flg_acl[]"]');
 $admin.bind('change', function(){
-    on_admin_change();
-});
-function on_admin_change() {
-    var val = $admin.filter(':checked').val();
-    if (val === '<?php echo USER_FLG_ADMIN_ADMIN?>') {
+    var val = $(this).val();
+    if (val === '<?php echo USER_ROLE_ADMIN?>') {
         // 管理者
         $perms.prop('disabled', true);
         $perms.prop('checked', true);
     } else {
         $perms.prop('disabled', false);
     }
-}
-on_admin_change();
+});
+
+$('input[name="role"]:checked').change();
 
 </script>

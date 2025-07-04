@@ -79,12 +79,6 @@ class Admin_news_model extends MY_Model
             $data['disp_place'] = implode(',', array_filter($data['disp_place']));
         }
 
-        if( 
-            $data['publish_term'] == '1' && 
-            empty($data['start_date']) && 
-            empty($data['end_date'])
-        ) $data['publish_term'] = '0';
-
         return $data;
     }
 

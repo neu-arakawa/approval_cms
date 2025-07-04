@@ -130,6 +130,11 @@
   clear: both;
 }
 
+.ve .image-only img {
+  width: auto;
+  max-width: 100%;
+}
+
 .ve .link-wrap a, .ve .link-wrap a:visited {
   color: #00f;
   text-decoration: underline;

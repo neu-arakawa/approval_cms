@@ -2,16 +2,6 @@
 	font-size: 0.8rem !important;
 }
 
-.red,
-.mainColor {
-    color: #D30000 !important;
-}
-
-
-.edit-box .dataTable th {
-    width: 14rem;
-}
-
 .search-controller .controller-right .limit {
     width: auto;
 }
@@ -20,75 +10,16 @@
     width: 11.5rem;
 }
 
-.-temporary {
-    background-color:#ff7308!important;
-    color: #fff!important;
-}
-
-.-temporary a {
+.-published {
+    border-color:#4267b2;
+    background: #4267b2;
     color: #fff;
+    font-weight: 600;
 }
 
-.inline-editor .ve-field.inited {
-    min-height: 8rem;
+.-not_published {
+    border-color:#d43838;
+    background: #d43838;
+    color: #fff;
+    font-weight: 600;
 }
-
-.table.table-timetable td {
-    vertical-align: top!important;
-}
-
-header nav h1 {
-    max-width: 19rem;
-}
-
-/* span.xxx > a 対応 */
-
-.pink{
-  a{ color: #B87392 !important; }
-}
-.beta__pink{
-  a{ color: #fff !important; }
-}
-
-.purple{
-  a{ color: #9364AF !important; }
-}
-.beta__purple{
-  a{ color: #fff !important; }
-}
-
-.blue{
-  a{ color: #4975B6 !important; }
-}
-.beta__blue{
-  a{ color: #fff !important; }
-}
-
-.lightblue{
-  a{ color: #60A8B8 !important; }
-}
-.beta__lightblue{
-  a{ color: #fff !important; }
-}
-
-.green{
-  a{ color: #559E61 !important; }
-}
-.beta__green{
-  a{ color: #fff !important; }
-}
-
-.orange{
-  a{ color: #C98A5C !important; }
-}
-.beta__orange{
-  a{ color: #fff !important; }
-}
-
-.gray{
-  a{ color: #ADADAD !important; }
-}
-.beta__gray{
-  a{ color: #fff !important; }
-}
-

@@ -18,6 +18,8 @@ class Admin_model extends MY_Model
         if (isset($row->flg_acl)) {
             $row->flg_acl = explode(',', $row->flg_acl);
         }
+        $row->flg_admin     = ( $row->role_id == USER_ROLE_ADMIN ? 1 : 0 );
+        $row->flg_approval  = ( $row->role_id != USER_ROLE_AUTHOR ? 1 : 0 );
 
         // セッションにセット
         $this->my_session->sess_regenerate();
@@ -117,22 +119,5 @@ class Admin_model extends MY_Model
         $this->db->where(AUTH_EMAIL_FIELD, $email);
         $row = $this->db->get()->row();
         return empty($row) ? false : $row;
-    }
-
-    // アクセストークンの発行
-    private function _generate_access_token($len=30)
-    {
-        $possible = '0123456789abcdefghijklmnopqrstuvwxyz';
-        $token = "";
-        $i = 0;
-
-        while ($i < $len) {
-            $char = substr($possible, mt_rand( 0, strlen( $possible ) - 1 ), 1);
-            if (!stristr( $token, $char)) {
-                $token .= $char;
-                $i++;
-            }
-        }
-        return $token;
     }
 }

@@ -720,12 +720,15 @@ function bread_crumbs()
 function admin_input_buttons($settings = [])
 {
     $default = [
-        'cancel' => 'キャンセル',
-        'draft' => '保存',
-        'direct' => '実行',
-        'confirm' => '確認画面へ',
-        'preview' => 'プレビュー',
-        'temporary' => false,//'一時保存（公開されません）'
+        'cancel'    => 'キャンセル',
+        'reject'    => '差し戻す',
+        'approved'  => '承認して公開する',
+        'pending_midflow'   => false,
+        'draft'     => '下書き保存',
+        'direct'    => '登録する',
+        'pending'   => false, //'承認依頼として送信する',
+        'confirm'   => false,
+        'preview'   => 'プレビュー',
     ];
     $settings = array_merge($default, $settings);
 
@@ -733,6 +736,31 @@ function admin_input_buttons($settings = [])
     $out .= '<div class="col-sm-12">';
     if (!empty($settings['cancel'])) { // キャンセルボタン
         $out .= '<button type="submit" name="btn_cancel" class="btn btn-danger" onclick="return confirm(\'入力内容を破棄します。\nよろしいですか?\');">'. $settings['cancel'] .'</button>';
+    }
+
+    if (!empty($settings['pending_midflow'])) { // 保留ボタン
+        $out .= '<button type="submit" name="btn_pending_midflow" class="btn pull-right">';
+        $out .= '<i class="fa fa-floppy-o" aria-hidden="true"></i> '.$settings['pending_midflow'];
+        $out .= '</button>';
+    }
+
+    if (!empty($settings['reject'])) { // 差し戻しボタン
+        $out .= '<button type="button" name="btn_reject" class="btn btn-danger pull-right mr-1" data-confirm="<h5>承認NGにしますか？</h5><small class=\'red\'>※ この操作は取り消しできません</small>">';
+        $out .= '<i class="fa fa-ban" aria-hidden="true"></i> '.$settings['reject'];
+        $out .= '</button>';
+    }
+
+    if (!empty($settings['draft'])) { // 下書きボタン
+        $out .= '<button type="submit" name="btn_draft" class="btn btn-secondary pull-right mr-1">';
+        $out .= '<i class="fa fa-floppy-o" aria-hidden="true"></i> '. $settings['draft'];
+        $out .= '</button>';
+    }
+
+
+    if (!empty($settings['approved'])) { // 承認してボタン
+        $out .= '<button type="button" name="btn_approved" class="btn btn-primary pull-right mr-1" data-confirm="<h5>承認OKにしますか？</h5><small class=\'red\'>※ この操作は取り消しできません</small>">';
+        $out .= '<i class="fa fa-check"></i> '.$settings['approved'];
+        $out .= '</button>';
     }
 
     if (!empty($settings['confirm'])) { // 確認ボタン
@@ -743,27 +771,24 @@ function admin_input_buttons($settings = [])
 
     if (!empty($settings['direct'])) { // 確認無しで保存
         $out .= '<button type="submit" name="btn_direct" class="btn btn-primary pull-right mr-1">';
-        $out .= $settings['direct'];
+        $out .= '<i class="fa fa-floppy-o" aria-hidden="true"></i> '.$settings['direct'];
         $out .= '</button>';
     }
 
-    if (!empty($settings['preview'])) { // 確認無しで保存
+
+    if (!empty($settings['pending'])) { // 承認依頼ボタン
+        $out .= '<button type="button" name="btn_pending" class="btn btn-primary pull-right mr-1" data-confirm="<h5>承認依頼しますか？</h5>">';
+        $out .= '<i class="fa fa-paper-plane" aria-hidden="true"></i> '.$settings['pending'];
+        $out .= '</button>';
+    }
+
+    if (!empty($settings['preview'])) { // プレビュー
         $out .= '<button type="button" name="btn_preview" class="btn btn-warning pull-right mr-1" id="preview">';
-        $out .= $settings['preview'];
+        $out .= '<i class="fa fa-eye" aria-hidden="true"></i> '. $settings['preview'];
         $out .= '</button>';
     }
 
-    if (!empty($settings['temporary'])) { // 一時保存ボタン
-        $out .= '<button type="submit" name="btn_temporary" class="btn btn-warning -temporary pull-right mr-1">';
-        $out .= $settings['temporary'];
-        $out .= '</button>';
-    }
 
-    if (!empty($settings['draft'])) { // 下書きボタン
-        $out .= '<button type="submit" name="btn_draft" class="btn btn-secondary pull-right mr-1">';
-        $out .= $settings['draft'];
-        $out .= '</button>';
-    }
     $out .= '</div>';
     $out .= '</div>';
     return $out;
@@ -1509,3 +1534,29 @@ function admin_pagination($pager, $options=[])
 
     return $out;
 }
+
+//承認用ステータス
+function admin_post_status_for_approval($data){
+    $out = '';
+    if( $data['status'] == APPROVAL_STATUS_PUBLISHED ){
+        if (!empty($data['published'])) { 
+            echo '公開中';
+        }
+        elseif($data['future']){
+            echo '公開予約';
+            echo "<div class='future_date'>";
+            echo h($data['start_date'] );
+            echo '</div>';
+        }
+        else {
+            echo '非公開';
+        }
+    }
+    else {
+        echo '<span class="badge badge-danger" style="font-size:100%;padding:8px;">';
+        echo opt($data['status'] , ApprovalConf::$status_options);
+        echo '</span>';
+    }
+    return $out;
+}
+

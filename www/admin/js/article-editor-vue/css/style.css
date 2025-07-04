@@ -34,6 +34,7 @@
   background-color: #fff;
   top: 0;
   left: 0;
+  width: 150px;
   visibility: hidden;
   opacity: 0;
   -webkit-border-radius: 5px;
@@ -125,11 +126,11 @@
   content: "\f031";
 }
 
-.article-editor .item-menu li[data-type="image"]:before {
+.article-editor .item-menu li[data-type="image-only"]:before {
   content: "\f03e";
 }
 
-.article-editor .item-menu li[data-type="image-kmu"]:before {
+.article-editor .item-menu li[data-type="image"]:before {
   content: "\f03e";
 }
 
@@ -137,36 +138,16 @@
   content: "\f0c1";
 }
 
-.article-editor .item-menu li[data-type="link-kmu"]:before {
-  content: "\f0c1";
-}
-
 .article-editor .item-menu li[data-type="list"]:before {
   content: "\f0ca";
-}
-
-.article-editor .item-menu li[data-type="list-kmu"]:before {
-  content: "\f0ca";
-}
-
-.article-editor .item-menu li[data-type="list-link-kmu"]:before {
-  content: "\f0c1";
 }
 
 .article-editor .item-menu li[data-type="table"]:before {
   content: "\f0ce";
 }
 
-.article-editor .item-menu li[data-type="youtube"]:before {
-  content: "\f167";
-}
-
 .article-editor .item-menu li[data-type="html"]:before {
   content: "\f121";
-}
-
-.article-editor .item-menu li[data-type="vs-image"]:before {
-  content: "\f03e";
 }
 
 .article-editor .item-menu li:hover {
@@ -651,10 +632,6 @@
   margin-right: .5em;
 }
 
-.article-editor .item.link .wrap + .wrap {
-  margin-top: 30px;
-}
-
 .article-editor .item.image {
   transition: border-color .15s ease-in-out,box-shadow .15s ease-in-out;
 }
@@ -679,7 +656,6 @@
   background-color: #FADF9C;
 }
 
-.article-editor .item.image .text.focus,
 .article-editor .item.image.focus .content {
   border: 1px solid #80bdff !important;
   box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
@@ -889,6 +865,11 @@
   content: " ";
   display: block;
   clear: both;
+}
+
+.article-editor .item.image .col2 .content .img-only img {
+  width: auto;
+  max-width: 100%;
 }
 
 .article-editor .item.ve-text .ve {
@@ -1439,20 +1420,4 @@
   box-sizing: content-box;
   direction: ltr;
   max-width: none;
-}
-
-.mce-tinymce button {
-  all: unset;
-}
-
-.mce-tinymce button:hover {
-  background-color: transparent;
-}
-
-.col2.center .ve {
-  text-align: center;
-}
-
-.col2.right .ve {
-  text-align: right;
 }

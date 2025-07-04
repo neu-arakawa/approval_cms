@@ -1,9 +1,6 @@
 <?php 
 // 権限設定
 $user = $this->my_session->admin;
-$has_perm = function ($id) use ($user) {
-  return $user->flg_admin || in_array($id, $user->flg_acl ?? []);
-}
 ?>
 <div class="navbar align-middle">
   <ul class="nav nav-pills">
@@ -12,7 +9,6 @@ $has_perm = function ($id) use ($user) {
       <h3><a href="<?php echo admin_base_url('/') ?>" class="nav-link"><i class="fas fa-tachometer-alt"></i> ダッシュボード</a></h3>
     </li>
 
-    <?php if ($has_perm(USER_PERM_NEWS)):?>
     <li class="nav-item">
       <h3><span><?php echo admin_view_icon('admin/news') ?> 新着情報管理</span></h3>
       <ul class="nav">
@@ -20,7 +16,6 @@ $has_perm = function ($id) use ($user) {
         <li class="nav-item"><a href="<?php echo admin_base_url('/news/') ?>" class="nav-link">一覧</a></li>
       </ul>
     </li>
-    <?php endif?>
 
     <?php if ($user->flg_admin): // 管理者のみ?>
     <li class="nav-item">

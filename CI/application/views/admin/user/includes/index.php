@@ -13,6 +13,20 @@
                 null,
                 'col-md-12 col-lg-8'); ?>
 
+                <!-- 詳細検索 -->
+                <div class="detail-search">
+                    <a href="#detail-search-body" data-toggle="collapse"><i class="fas fa-plus-circle"></i> 検索条件をより細かく設定する</a>
+                    <div class="detail-search-body collapse" id="detail-search-body">
+                        <?php 
+                        echo admin_search_row(
+                            admin_form_dropdown_raw('role_id', UserConf::$role_options, null, ['empty'=>'指定なし',]),
+                            lang('role_id'),
+                            null,
+                            'col-md-2'
+                        ); ?>
+                    </div>
+                </div>
+
             <?php echo admin_search_buttons(); ?>
 
             <?php echo form_close(); ?>
@@ -41,17 +55,28 @@
     ?>
     <div class="table-responsive reverse-scroll">
         <table class="table table-bordered dataTable" style="min-width: 52rem">
+        <colgroup>
+          <col style="width: 4rem;">
+          <col style="width: 10rem;">
+          <col style="width: 10rem;">
+          <col style="width: 10rem;">
+          <col style="width: auto;">
+          <?php if (AUTH_RETRY_MAX>=0):// ログイン試行の設定あり?>
+          <col style="width: 8rem;">
+        <?php endif?>
+          <col style="width: 12rem;">
+        </colgroup>
             <thead>
                 <tr>
-                    <th class="sorting" style="width:4rem"><?php echo sort_link('id', 'ID'); ?></th>
-                    <th class="sorting" style=""><?php echo sort_link('name', 'name'); ?></th>
-                    <th class="sorting" style="width:8rem"><?php echo sort_link(AUTH_USER_FIELD, AUTH_USER_FIELD); ?></th>
-                    <th class="sorting" style="width:4.5rem">権限</th>
-                    <th class="sorting" style="width:13rem"><?php echo sort_link(AUTH_EMAIL_FIELD, 'email'); ?></th>
+                    <th class="sorting"><?php echo sort_link('id', 'ID'); ?></th>
+                    <th class="sorting text-left"><?php echo sort_link('name', 'name'); ?></th>
+                    <th class="sorting text-left"><?php echo sort_link(AUTH_USER_FIELD, AUTH_USER_FIELD); ?></th>
+                    <th class="sorting"><?php echo lang('role_id'); ?></th>
+                    <th class="sorting text-left"><?php echo sort_link(AUTH_EMAIL_FIELD, 'email'); ?></th>
                     <?php if (AUTH_RETRY_MAX>=0):// ログイン試行の設定あり?>
-                        <th class="sorting" style="width:6.5rem">アカウント<br>ロック <i class="fas fa-question-circle" data-toggle="tooltip" data-placement="top" title="ログインを連続で失敗し、ロックされたアカウントには「ロック中」のラベルが表示されます。"></i></th>
+                        <th class="sorting">アカウント<br>ロック <i class="fas fa-question-circle" data-toggle="tooltip" data-placement="top" title="ログインを連続で失敗し、ロックされたアカウントには「ロック中」のラベルが表示されます。"></i></th>
                     <?php endif?>
-                    <th class="sorting" style="width:10rem">操作</th>
+                    <th class="sorting">操作</th>
                 </tr>
             </thead>
             <tbody>
@@ -60,7 +85,7 @@
                     <td><?php echo h($v['id']); ?></td>
                     <td class="text-left"><?php echo h($v['name']) ?></td>
                     <td class="text-left"><?php echo h($v[AUTH_USER_FIELD]) ?></td>
-                    <td><?php echo opt($v['flg_admin'], UserConf::$flg_admin_options) ?></td>
+                    <td><?php echo opt($v['role_id'], UserConf::$role_options) ?></td>
                     <td class="text-left"><?php echo h($v[AUTH_EMAIL_FIELD],'(未設定)') ?></td>
                     <?php if (AUTH_RETRY_MAX>=0):// ログイン試行の設定あり?>
                         <td><?php

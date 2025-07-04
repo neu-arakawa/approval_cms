@@ -85,7 +85,7 @@
                     </th>
                     <th class="sorting" style="width:8rem"><?php echo sort_link('disp_date', 'disp_date'); ?> </th>
                     <th class="sorting" style="width:8rem"><?php echo sort_link('category_id', 'category_id'); ?></th>
-                    <th class="sorting" style="width:10rem">公開状態</th>
+                    <th class="sorting" style="width:10rem">記事ステータス</th>
                     <th class="sorting" style="width:13.3rem">操作</th>
                 </tr>
             </thead>
@@ -96,16 +96,9 @@
                     <td class="text-sm"><?php echo h($v['id']); ?></td>
                     <td class="text-left">
                     <?php 
-                        if( !empty($v['is_temporary']) ){
-                            echo '<div class="badge badge-warning -temporary">一時保存</div>';
-                        }
                         echo '<div>';
                         echo h($v['title'],'(未設定)');
                         echo '</div>';
-                        if( !empty($v['is_temporary']) ){
-                            echo '<a href="'.base_url( $controller.'/preview_page/'. md5($v['id']) ).'" 
-                                style="font-size:.6rem" target="_blank"><i class="fas fa-clone small"></i> 一時保存のプレビューを見る</a>';
-                        }
                     ?>
                     </td>
                     <td class="text-center">
@@ -116,48 +109,37 @@
                     </td>
                     <td class="text-center">
                         <?php
-                        $help = '';
-                        $url = null;
+                        //$help = '';
+                        //$url = null;
 
-                        if ($v['link_type']==NEWS_LINK_TYPE_ATTACH){
-                            $url = $v['attach_path'];
-                        } else if ($v['link_type']==NEWS_LINK_TYPE_URL) {
-                            $url = $v['external_url'];
-                        }
+                        //if ($v['link_type']==NEWS_LINK_TYPE_ATTACH){
+                        //    $url = $v['attach_path'];
+                        //} else if ($v['link_type']==NEWS_LINK_TYPE_URL) {
+                        //    $url = $v['external_url'];
+                        //}
 
-                        if (!empty($v['published'])) { // 公開中
-                            if ($v['link_type']==NEWS_LINK_TYPE_CONTENT) {
-                                $url = $v['detail_url']; // 詳細画面のURLを表示
-                            }
-                            $label = '公開中';
-                        } else { // 非公開中
-                            if ($v['link_type']==NEWS_LINK_TYPE_CONTENT) {
-                                $url = admin_preview_url($v['detail_url'], $v['validated']);
-                            }
-                            $label = '非公開';
-                        }
+                        //if (!empty($v['published'])) { // 公開中
+                        //    if ($v['link_type']==NEWS_LINK_TYPE_CONTENT) {
+                        //        $url = $v['detail_url']; // 詳細画面のURLを表示
+                        //    }
+                        //    $label = '公開中';
+                        //} else { // 非公開中
+                        //    if ($v['link_type']==NEWS_LINK_TYPE_CONTENT) {
+                        //        $url = admin_preview_url($v['detail_url'], $v['validated']);
+                        //    }
+                        //    $label = '非公開';
+                        //}
                         ?>
-                        <?php if (!empty($url)):?>
-                            <a href="<?php echo h($url)?>" target="_blank" class="text-sm">
-                            <?php echo h($label)?> <i class="fas fa-external-link-alt"></i>
-                            </a>
-                        <?php else :?>
-                            <?php echo h($label)?>
-                        <?php endif?>
-                        <?php echo empty($v['flg_publish']) ? '<br><small>（公開取下げ）</small>' : ''; ?>
-
+                        <?php echo admin_post_status_for_approval($v) ?>
                     </td>
                     <td>
                         <?php echo admin_list_menu(
                             $v['id'],
                             [
                                 // 公開フラグがONなら非表示、そうでなければバリデート済みなら表示、バリデートがまだであれば無効
-                                'publish' => !!$v['flg_publish']
-                                                ? false
-                                                : (!!$v['validated']
-                                                    ? true : 'disabled'),
+                                'publish' => false,
                                 // 公開フラグがONなら表示
-                                'draft' => !!$v['flg_publish'],
+                                'draft' => false,
                             ]
                         )?>
                     </td>

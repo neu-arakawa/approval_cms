@@ -208,6 +208,7 @@ class Admin_Controller extends MY_Controller
     protected function _draft($data)
     {
         // 下書き保存処理
+        $data['status'] = APPROVAL_STATUS_DRAFT;
         $save_id = $this->_model->save($data, $this->_model_id, false);
         if ($save_id) { // 保存成功
             // 操作ログ保存
@@ -234,34 +235,6 @@ class Admin_Controller extends MY_Controller
     protected function _confirm($data)
     {
         // 何か確認画面表示時に必要な処理
-    }
-
-    // 一時保存処理時コールバック
-    // $data: 保存対象データ
-    protected function _temporary($data)
-    {
-        // 保存処理
-        $save_id = $this->_model->save_temporary($data, $this->_model_id);
-        if ($save_id) { // 保存成功
-            // 操作ログ保存
-            $this->_save_ope_log(
-                $save_id, '一時保存', true, "一時保存時のタイトル:". strip_tags($this->_model->get_last_title())
-            );
-            // フラッシュメッセージ設定
-            $edit_btn = '<a href="'.admin_base_url($this->_controller_name.'/edit').'" type="button" class="btn btn-primary btn-xs">再度編集する</a>';
-            $this->flash->info(
-                sprintf('ID:%s「%s」の一時保存が完了しました', $save_id, strip_tags($this->_model->get_last_title()))
-            );
-        } else { // 失敗
-            // 操作ログ保存
-            $this->_save_ope_log(
-                $save_id, '公開保存', false, "一時保存対象ID:". $this->_model_id
-            );
-            // フラッシュメッセージ設定
-            $this->flash->error(
-                sprintf('ID:%s の保存に失敗しました', $this->_model_id)
-            );
-        }
     }
 
     // 保存処理時コールバック
@@ -310,6 +283,8 @@ class Admin_Controller extends MY_Controller
                     // バリデーション実行
                     $results[$idx]['validated'] = $this->_exec_validate($arr);
                 }
+                // リセット
+                $this->form_validation = new CI_Form_validation();
             }
         }
         $data = [
@@ -664,6 +639,62 @@ class Admin_Controller extends MY_Controller
                 } else { // 検証失敗
                     $this->_call_action_method('_error_back');
                 }
+            } else if($this->input->post('btn_pending')!==null){
+                // 承認依頼
+                // バリデート処理実行
+                $validated = $this->_exec_validate(null, $validate_group);
+                if ($validated) { // 検証成功
+                    $this->_call_action_method('_pending', $this->input->post());
+                    admin_redirect($this->_controller_name.'/index');   // 一覧にリダイレクト
+                } else { // 検証失敗
+                    $this->_call_action_method('_error_back');
+                }
+
+            } else if($this->input->post('btn_pending_cancel')!==null){
+                // 承認依頼
+                // バリデート処理実行
+                $validated = $this->_exec_validate(null, $validate_group);
+                if ($validated) { // 検証成功
+                    $this->_call_action_method('_pending_cancel', $this->input->post());
+                    admin_redirect($this->_controller_name.'/edit/'.$this->_model_id);   // 一覧にリダイレクト
+                } else { // 検証失敗
+                    $this->_call_action_method('_error_back');
+                }
+
+            } else if($this->input->post('btn_pending_while')!==null){
+                // 承認依頼
+                // バリデート処理実行
+                $validated = $this->_exec_validate(null, $validate_group);
+                if ($validated) { // 検証成功
+                    $this->_call_action_method('_pending_draft', $this->input->post());
+                    admin_redirect($this->_controller_name.'/edit/'.$this->_model_id);   // 一覧にリダイレクト
+                } else { // 検証失敗
+                    $this->_call_action_method('_error_back');
+                }
+
+            } else if($this->input->post('btn_reject')!==null){
+                // 承認依頼
+
+                // バリデート処理実行
+                $validated = $this->_exec_validate(null, $validate_group);
+                if ($validated) { // 検証成功
+                    $this->_call_action_method('_reject', $this->input->post());
+                    admin_redirect($this->_controller_name.'/index');   // 一覧にリダイレクト
+                } else { // 検証失敗
+                    $this->_call_action_method('_error_back');
+                }
+
+            } else if($this->input->post('btn_approved')!==null){
+                // 承認OK
+
+                // バリデート処理実行
+                $validated = $this->_exec_validate(null, $validate_group);
+                if ($validated) { // 検証成功
+                    $this->_call_action_method('_approved', $this->input->post());
+                    admin_redirect($this->_controller_name.'/index');   // 一覧にリダイレクト
+                } else { // 検証失敗
+                    $this->_call_action_method('_error_back');
+                }
 
             } else {
                 // その他送信ボタンが押された
@@ -912,6 +943,223 @@ class Admin_Controller extends MY_Controller
                 $view = 'admin/common/sort';
             }
             $this->load->view($view, compact('sorted'));
+        }
+    }
+
+    // 保存処理時コールバック
+    // $data: 保存対象データ
+    protected function _pending($data)
+    {
+        if( $this->session->admin->flg_approval ) show_404();
+
+        // 保存処理
+        $data['status'] = APPROVAL_STATUS_PENDING;
+        $data['pending_by'] = $this->my_session->admin->id;
+        $data['pending_date'] = NOW;
+        $save_id = $this->_model->save($data, $this->_model_id, true);
+        if ($save_id) { // 保存成功
+        	$to = $this->_model->get_approver_emails();
+            if( !empty($to) && ENABLE_NOTIFY_APPROVAL ){
+                // $this->load->library('email');
+                // $this->email
+                //     ->template('approval', [
+                //         'entity_name'   => $this::ENTITY_NAME,
+                //         'post_status'   => '承認依頼',
+                //         'post_title'    => $data['title'],
+                //         'post_edit_url' => admin_base_url($this->_controller_name.'/edit/'. $save_id, null, true),
+                //         'user'          => $this->my_session->admin,
+                //         'message'       => !empty($data['note'])? $data['note']:'(ありません)',
+                //     ])
+                //     ->to($to)
+                //     ->send(false);
+            }
+
+            // 操作ログ保存
+            $this->_save_ope_log(
+                $save_id, '承認依頼', true, "保存時のタイトル:". strip_tags($this->_model->get_last_title())
+            );
+
+            // フラッシュメッセージ設定
+            $edit_btn = '<a href="'.admin_base_url($this->_controller_name.'/edit').'" type="button" class="btn btn-primary btn-xs">再度編集する</a>';
+            $this->flash->info(
+                sprintf('ID:%s「%s」の承認依頼しました', $save_id, strip_tags($this->_model->get_last_title()))
+            );
+        } else { // 失敗
+            // 操作ログ保存
+            $this->_save_ope_log(
+                $save_id, '承認依頼', false, "公開保存対象ID:". $this->_model_id
+            );
+            // フラッシュメッセージ設定
+            $this->flash->error(
+                sprintf('ID:%s の承認依頼に失敗しました', $this->_model_id)
+            );
+        }
+    }
+
+    // 保存処理時コールバック
+    // $data: 保存対象データ
+    protected function _pending_cancel($data)
+    {
+        if( $this->session->admin->flg_approval ) show_404();
+
+        // 保存処理
+        $data['status'] = APPROVAL_STATUS_DRAFT;
+        $data['pending_by'] = '';
+        $data['pending_date'] = '';
+        $save_id = $this->_model->save($data, $this->_model_id, true);
+        if ($save_id) { // 保存成功
+
+            // 操作ログ保存
+            $this->_save_ope_log(
+                $save_id, '承認取消', true, "保存時のタイトル:". strip_tags($this->_model->get_last_title())
+            );
+
+            // フラッシュメッセージ設定
+            $edit_btn = '<a href="'.admin_base_url($this->_controller_name.'/edit').'" type="button" class="btn btn-primary btn-xs">再度編集する</a>';
+            $this->flash->info(
+                sprintf('ID:%s「%s」の承認依頼を取り下げました', $save_id, strip_tags($this->_model->get_last_title()))
+            );
+        } else { // 失敗
+            // 操作ログ保存
+            $this->_save_ope_log(
+                $save_id, '承認依頼', false, "公開保存対象ID:". $this->_model_id
+            );
+            // フラッシュメッセージ設定
+            $this->flash->error(
+                sprintf('ID:%s の承認依頼に失敗しました', $this->_model_id)
+            );
+        }
+    }
+
+    // 保存処理時コールバック
+    // $data: 保存対象データ
+    protected function _reject($data)
+    {
+        if( !$this->session->admin->flg_admin ) show_404();
+
+        // 保存処理
+        $data['status'] = APPROVAL_STATUS_REJECT;
+        $save_id = $this->_model->save($data, $this->_model_id, true);
+        if ($save_id) { // 保存成功
+        	$to = $this->_model->get_approver_emails();
+            if( !empty($to) && ENABLE_NOTIFY_APPROVAL ){
+                //$this->load->library('email');
+                //$this->email
+                //    ->template('approval_reject', [
+                //        'entity_name'   => $this::ENTITY_NAME,
+                //        'post_status'   => '差戻し',
+                //        'post_title'    => $data['title'],
+                //        'post_edit_url' => current_url(),
+                //        'user'          => $this->my_session->admin,
+                //        'message'       => !empty($data['note'])? $data['note']:'(ありません)',
+                //    ])
+                //    ->to($to)
+                //    ->send(false);
+            }
+
+            // 操作ログ保存
+            $this->_save_ope_log(
+                $save_id, '差戻し', true, "保存時のタイトル:". strip_tags($this->_model->get_last_title())
+            );
+            // フラッシュメッセージ設定
+            $edit_btn = '<a href="'.admin_base_url($this->_controller_name.'/edit').'" type="button" class="btn btn-primary btn-xs">再度編集する</a>';
+            $this->flash->info(
+                sprintf('ID:%s「%s」の差戻しをしました', $save_id, strip_tags($this->_model->get_last_title()))
+            );
+        } else { // 失敗
+            // 操作ログ保存
+            $this->_save_ope_log(
+                $save_id, '差戻し保存', false, "公開保存対象ID:". $this->_model_id
+            );
+            // フラッシュメッセージ設定
+            $this->flash->error(
+                sprintf('ID:%s の差戻しに失敗しました', $this->_model_id)
+            );
+        }
+    }
+
+    // 保存処理時コールバック
+    // $data: 保存対象データ
+    protected function _approved($data)
+    {
+        if( !$this->session->admin->flg_admin ) show_404();
+        
+        $ori_model_id = 0;
+        if( !empty($this->_current_date) && !empty($this->_current_date['parent_id']) ){
+            // 記事の差し替え
+            $ori_model_id = $this->_model_id;
+            $this->_model_id = $this->_current_date['parent_id'];
+        }
+
+        // 保存処理
+        $data['status'] = APPROVAL_STATUS_PUBLISHED;
+        $save_id = $this->_model->save($data, $this->_model_id, true);
+        if ($save_id) { // 保存成功
+            
+            // 元記事は削除
+            if( !empty($ori_model_id) ) $this->_model->delete($ori_model_id);
+
+        	$to = $this->_model->get_approver_emails();
+            if( !empty($to) && ENABLE_NOTIFY_APPROVAL ){
+                //$this->load->library('email');
+                //$this->email
+                //    ->template('approval_reject', [
+                //        'entity_name'   => $this::ENTITY_NAME,
+                //        'post_status'   => '差戻し',
+                //        'post_title'    => $data['title'],
+                //        'post_edit_url' => current_url(),
+                //        'user'          => $this->my_session->admin,
+                //        'message'       => !empty($data['note'])? $data['note']:'(ありません)',
+                //    ])
+                //    ->to($to)
+                //    ->send(false);
+            }
+
+            // 操作ログ保存
+            $this->_save_ope_log(
+                $save_id, '承認OK', true, "保存時のタイトル:". strip_tags($this->_model->get_last_title())
+            );
+            // フラッシュメッセージ設定
+            $edit_btn = '<a href="'.admin_base_url($this->_controller_name.'/edit').'" type="button" class="btn btn-primary btn-xs">再度編集する</a>';
+            $this->flash->info(
+                sprintf('ID:%s「%s」の承認OK（公開）しました', $save_id, strip_tags($this->_model->get_last_title()))
+            );
+        } else { // 失敗
+            // 操作ログ保存
+            $this->_save_ope_log(
+                $save_id, '承認OK', false, "公開保存対象ID:". $this->_model_id
+            );
+            // フラッシュメッセージ設定
+            $this->flash->error(
+                sprintf('ID:%s の承認OKに失敗しました', $this->_model_id)
+            );
+        }
+    }
+
+    // 下書き保存時コールバック(編集画面経由)
+    protected function _pending_midflow($data)
+    {
+        // 下書き保存処理
+        $data['status'] = APPROVAL_STATUS_PENDING;
+        $save_id = $this->_model->save($data, $this->_model_id, false);
+        if ($save_id) { // 保存成功
+            // 操作ログ保存
+            $this->_save_ope_log(
+                $save_id, '承認依頼中の途中保存', true, "保存時のタイトル:". strip_tags($this->_model->get_last_title())
+            );
+            // フラッシュメッセージ設定
+            $this->flash->info(
+                sprintf('ID:%s「%s」の承認依頼中の途中保存が完了しました', $save_id, strip_tags($this->_model->get_last_title()))
+            );
+        } else { // 失敗
+            // 操作ログ保存
+            $this->_save_ope_log(
+                $save_id, '承認依頼中の途中保存', false, "下書き対象ID:". $this->_model_id
+            );
+            // フラッシュメッセージ設定
+            $this->flash->error(
+                sprintf('ID:%s の承認依頼中の途中保存に失敗しました', $this->_model_id)
+            );
         }
     }
 }

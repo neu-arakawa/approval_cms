@@ -68,6 +68,10 @@ $config = [
         [
             'field' => AUTH_EMAIL_FIELD,
             'rules' => 'valid_email|is_unique_by_id[admin_users.'.AUTH_EMAIL_FIELD.']',
+        ],
+        [
+            'field' => 'role_id',
+            'rules' => 'required',
         ]
     ],
 

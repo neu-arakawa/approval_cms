@@ -36,8 +36,8 @@ class Admin_user_model extends MY_Model
         }
 
         if (empty($this->my_session->admin->flg_admin)) { // 管理権限なし
-            if (isset($data['flg_admin'])) {
-                unset($data['flg_admin']);
+            if (isset($data['flg_role'])) {
+                unset($data['flg_role']);
             }
             if (isset($data['login_name'])) {
                 unset($data['login_name']);
@@ -46,17 +46,12 @@ class Admin_user_model extends MY_Model
                 unset($data['flg_acl']);
             }
         } else { // 管理権限あり
-            if (!isset($data['flg_admin'])) { // 権限が設定されていなければデフォルトを設定する
-                $data['flg_admin'] = DEFAULT_USER_FLG_ADMIN;
+            if (!isset($data['role'])) { // 権限が設定されていなければデフォルトを設定する
+                $data['role_id'] = USER_ROLE_AUTHOR;
             }
-
-            if ($data['flg_admin'] === USER_FLG_ADMIN_ADMIN) {
-                $data['flg_acl'] = null; // 管理者のため、アクセス権リストはクリアする
-            } else if (!empty($data['flg_acl']) && is_array($data['flg_acl'])) {
-                $data['flg_acl'] = implode(',', array_filter($data['flg_acl']));
-            } else {
-                $data['flg_acl'] = null;
-            }
+            
+            // 機能自体不要
+            $data['flg_acl'] = null;
         }
         return $data;
     }

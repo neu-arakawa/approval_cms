@@ -1099,14 +1099,31 @@ class MY_Model extends CI_Model
     // publish_date_str: 表示用の公開期間テキスト
     protected function _append_data($data)
     {
+        $data['future']    = false; //予約公開かどうか
+
         // 公開状態の計算
         if ($this->_field_exists('start_date') && $this->_field_exists('end_date')) {
             // 公開期間データが存在する
             $st = !empty($data['start_date']) ? date('Y-m-d H:i', strtotime($data['start_date'])) : null;
             $ed = !empty($data['end_date']) ? date('Y-m-d H:i', strtotime($data['end_date'])) : null;
-            $flg = !empty($data['flg_publish']) ? true : false;
-            $data['during_term'] = during_term($st,$ed);
-            $data['published'] = $data['during_term'] && $flg;
+            
+            if ($this->_field_exists('flg_publish')){
+                $flg = !empty($data['flg_publish']) ? true : false;
+                $data['during_term'] = during_term($st,$ed);
+                if (!empty($st) && $flg){
+                    $data['future'] = strtotime($st) > NOW_TIME;
+                }
+                $data['published'] = $data['during_term'] && $flg;
+            }
+            else if( $this->_field_exists('status') ){
+                $flg = $data['status'] == APPROVAL_STATUS_PUBLISHED ? true : false;
+                $data['during_term'] = during_term($st,$ed);
+                if (!empty($st) && $flg){
+                    $data['future'] = strtotime($st) > NOW_TIME;
+                }
+                $data['published'] = $data['during_term'] && $flg;
+            }
+
             $data['start_date'] = $st;
             $data['end_date'] = $ed;
 
@@ -1117,7 +1134,7 @@ class MY_Model extends CI_Model
             }
             $date_disp_str[] = ' 〜 ';
             if (!empty($ed)) {
-                $st_tm = strtotime($st ?? '');
+                $st_tm = strtotime($st);
                 $ed_tm = strtotime($ed);
 
                 if (date('Y',$st_tm)==date('Y',$ed_tm)) {
@@ -1137,9 +1154,6 @@ class MY_Model extends CI_Model
             $data['during_term'] = true;
             $data['publish_date_str'] = null;
         }
-
-        // 見出し
-        $data['_title'] = $data[$this->_title_field] ?? null;
 
         return $data;
     }
@@ -1252,5 +1266,16 @@ class MY_Model extends CI_Model
             $this->db->trans_commit(); // トランザクションコミット
         }
         return true;
+    }
+
+    public function get_approver_emails(){
+        $query = $this->db->get_where('admin_users', array(
+			'role_id' => USER_ROLE_ADMIN,
+		));
+		$email = [];
+        foreach ($query->result_array() as $row){
+        	$email[] = $row['email'];
+        }
+		return $email;
     }
 }

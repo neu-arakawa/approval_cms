@@ -1,5 +1,6 @@
 <?php /* 編集画面と確認画面共通のテンプレート */ ?>
 
+<?php include_once VIEWPATH.'admin/common/approval_header.php'; ?>
 <?php include_once VIEWPATH.'admin/common/info_block.php'; ?>
 
 <div class="edit-box">
@@ -39,7 +40,7 @@
 
 </div>
 
-<div class="edit-box">
+<div class="edit-box link_type_<?php echo NEWS_LINK_TYPE_CONTENT?> link_type">
     <h3>ページ設定</h3>
     <p class="small mb-1">デフォルトのmeta情報以外を設定したい場合のみ記入してください。</p>
     <table class="table table-bordered dataTable">
@@ -50,12 +51,7 @@
     </table>
 </div>
 
-<?php include_once VIEWPATH.'admin/common/publish_block.php'; ?>
-
-<?php
-if (empty($confirm_flag)) echo admin_input_buttons();
-else echo admin_confirm_buttons();
-?>
+<?php include_once VIEWPATH.'admin/common/approval_bottom.php'; ?>
 
 <script>
 // リンク種類による入力フィールドの切り替え
@@ -70,6 +66,12 @@ $('input[name="link_type"]').bind('change', function(){
 function show_link_type(type){
     $all_elms.hide();
     $('.link_type_'+type).show();
+    if( type == '<?php echo NEWS_LINK_TYPE_CONTENT?>'){
+        $('#preview').show();
+    }
+    else {
+        $('#preview').hide();
+    }
 }
 show_link_type(post_link_type);
 </script>

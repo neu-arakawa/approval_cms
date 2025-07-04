@@ -93,24 +93,8 @@ var ArticleEditor = (function(){
     // デフォルトのオプション設定　//////////////////////////////////////////
     var defaultOptions = {
       'maxFileSize':'2MB',          // アップロード可能な最大ファイルサイズ（サーバサイドの設定値よりも小さい値を入れること）
-      'types': ['big-heading', 'mid-heading', 'small-heading', 'text', 'image', 'image-kmu', 'vs-image', 'link', 'link-kmu', 'list', 'list-kmu', 'list-link-kmu','table', 'html', 'youtube'], // サポートする種類
-      'typeNames': {
-          'big-heading':'大見出し', 
-          'mid-heading':'中見出し', 
-          'small-heading':'小見出し', 
-          'text':'テキスト', 
-          'image':'画像', 
-          'image-kmu':'画像', 
-          'link':'リンク', 
-          'link-kmu':'リンク', 
-          'list':'リスト', 
-          'list-kmu':'リスト',
-          'list-link-kmu':'リンク', 
-          'table':'表組み', 
-          'html': 'HTML', 
-          'youtube': 'YouTube', 
-          'vs-image': '画像(横2列)'
-      },
+      'types': ['big-heading', 'mid-heading', 'small-heading', 'text', 'image', 'link', 'list', 'table', 'html'], // サポートする種類
+      'typeNames': {'big-heading':'大見出し', 'mid-heading':'中見出し', 'small-heading':'小見出し', 'text':'テキスト','image-only':'画像のみ', 'image':'画像', 'link':'リンク', 'list':'リスト', 'table':'表組み', 'html': 'HTML'},
       'allowCssClass': false,           // CSSクラスの入力を許可するか
       'allowImageAlt': false,           // （画像項目のみ）Altの入力を許可するか
       'bigHeadingTag': 'h3',            // 大見出しのタグ
@@ -128,6 +112,7 @@ var ArticleEditor = (function(){
       'tableMaxCol': 10,                // テーブルの最大列数
       'htmlTag': 'div',                 // HTMLのタグ
       'htmlTagClass': 'html-wrap',      // HTMLのクラス
+      'imageOnlyTagClass': 'image-only',    // 画像のみのクラス
       'wholeWrapTag': 'div',            // 全体を囲むタグ
       'wholeWrapTagClass': 've',        // 全体を囲むタグのクラス
       'imageTypes': ['jpg','jpeg','jpe','gif','png'], // 許可する画像の種類(img src=""に設定して問題ないものを指定すること)
@@ -139,8 +124,7 @@ var ArticleEditor = (function(){
       'uploaderDir': '/',               // Uploaderプラグインのアップロードディレクトリ名(/始まり)
       'inlineVe': true,                 // インラインでのビジュアルエディタ(wysiwygエディタ)の有効／無効
       'allowHtmlInText': false,         // テキスト入力フィールドで手動HTML入力を許可するか(inlineVeが有効な場合、テキスト、および画像ではVisualEditorによってテキストを編集するため、HTMLの入力は不可。inlineVeが無効な場合は見出し、テキスト、画像でHTMLの入力が可能)
-      // 'veInlineClasses': {'bold':'太字', 'highlight':'ハイライト', 'link':'リンク' }, // キーにはクラス名を、値にはメニューに表示されるタイトルを設定。linkの場合は例外的にクラスではなく、リンクの挿入に対応する場合に設定
-      'veStyleFormats': [],
+      'veInlineClasses': {'bold':'太字', 'highlight':'ハイライト', 'link':'リンク' }, // キーにはクラス名を、値にはメニューに表示されるタイトルを設定。linkの場合は例外的にクラスではなく、リンクの挿入に対応する場合に設定
       'onLoad': null,            // 要素のセットアップが完了して使用可能になったときのコールバック
       'onUpdate': null,                 // 要素の変更検知コールバック(リアルタイムプレビュー実装等)
       'updateInterval': 0               // onUpdateコールバックを呼び出す間隔(msec)(最初の変更を検知してから設定msecの間は一回のコールバックにまとめられる。完全リアルタイムにしたい場合は0を設定する。)
@@ -395,27 +379,14 @@ var VEComponent = {
     init: function(){
       var self = this;
 
-      var toolbar = 'undo redo | link unlink | removeformat';
-      var styles  = editor.options.veStyleFormats;
-      if ( styles.length ){
-          // toolbar = 'undo redo | styleselect link unlink | removeformat';
-          toolbar = 'styleselect link unlink | removeformat';
+      var toolbar;
+      var styles = [];
+      for( var cls in editor.options.veInlineClasses ){
+        var title = editor.options.veInlineClasses[cls];
+        if( cls==='link' ) toolbar = 'styleselect link unlink | removeformat';
+        else styles.push({title: title, inline:'span', classes:cls});
       }
-      //styles =  [
-      //  { title: 'ハイライト', items: [
-      //    { title: '赤マーカー', inline:'span',classes: 'highlight__red' },
-      //    { title: '緑マーカー', inline:'span',classes: 'highlight__green' }
-      //  ]},
-      //  { title: '文字色', items: [
-      //    { title: '赤', inline:'span',classes: 'red' },
-      //    { title: '緑', inline:'span',classes: 'green' }
-      //  ]},
-      //  { title: '白抜き', items: [
-      //    { title: '赤ベタ', inline:'span',classes: 'beta__red' },
-      //    { title: '緑ベタ', inline:'span',classes: 'beta__green' }
-      //  ]},
-      //  {title: '太字', inline:'span', classes:'bold'}
-      //];
+      if( !toolbar ) toolbar = 'styleselect | removeformat';
 
       var maxCount = 20;
       var count = 0;
@@ -425,19 +396,18 @@ var VEComponent = {
           // tinymceのスクリプトがロードされた直後は
           // tinymce.init処理を実行すると
           // 失敗することがあるため、間隔を開けて何度かリトライする
-          var file_manager_url = editor.options.uploaderPath;
-          if( editor.options.uploaderDir ) file_manager_url += '#' + editor.options.uploaderDir;
 
           tinymce.init({
             target: self.$el,
-            theme: 'inlite',
+            theme: 'modern',
             skin: 'custom',
             language: 'ja',
             menubar: false,
             statusbar: false,
             plugins: 'link paste',
             insert_toolbar: '',
-            selection_toolbar: toolbar,
+            // selection_toolbar: toolbar,
+            toolbar: toolbar,
             inline: true,
             paste_as_text: true,
             paste_data_images: false,
@@ -453,20 +423,6 @@ var VEComponent = {
             init_instance_callback: function(editor){
               clearInterval(timer);
               self.$emit('ve-init'); // 初期化完了を親コンポーネントに伝える
-            },
-            file_browser_callback: function(field_name, url, type, win) {
-                tinymce.activeEditor.windowManager.open({
-                    file: file_manager_url, 
-                    title: 'ファイルのアップロード・選択',
-		            width : window.innerWidth * 0.85,
-		            height : window.innerHeight * 0.75,
-                    resizable: 'yes'
-                }, {
-                    setUrl: function (url) {
-                        win.document.getElementById(field_name).value = url;
-                    }
-                });
-                return false;
             }
           });
         }
@@ -533,230 +489,6 @@ var VEComponent = {
     }
   }
 };
-
-    // ビジュアルエディタコンポーネント ///////////////////////////////////////////////////
-var wysiwygComponent = {
-  // blurイベントを設定するのは、VE経由でcontenteditableを操作する場合、inputイベントが発火しないため
-  template: '<div class="ve" ref="editor"\
-              contenteditable="false"\
-              v-bind:class="{placeholded: placeholded}"\
-              ref="inputElement"></div>',
-  props: ['text', 'isPlaceholderEnabled'],
-  data: function(){
-    return {
-      placeholded: false,
-      veMenuSelector: '.mce-tinymce', // TinyMCEのメニューのDOMセレクタ
-    };
-  },
-  created: function(){
-  },
-  mounted: function(){
-    // データをcontentEditableの領域に反映させる
-    var $dom = $(this.$refs.inputElement);
-
-    if( this.text ) $dom.html(this.text);
-    else $dom.html('<br>'); // 入力が全くないとキャレットが消失するのを回避
-
-      // this.loadTinyMCE(); // TinyMCEのロード
-
-    this.loadCkeditor();
-
-    // プレースホルダの入力ため、フォーカス解除イベントを呼び出し
-    // this.onBlur();
-  },
-  methods: {
-    init: function(){
-      var self = this;
-
-      var toolbar;
-      var styles = [];
-      for( var cls in editor.options.veInlineClasses ){
-        var title = editor.options.veInlineClasses[cls];
-        if( cls==='link' ) toolbar = 'styleselect link unlink | removeformat | code';
-        else styles.push({title: title, inline:'span', classes:cls});
-      }
-      if( !toolbar ) toolbar = 'styleselect | removeformat';
-
-      toolbar = 'styleselect link unlink | removeformat | image table template code';
-      var maxCount = 20;
-      var count = 0;
-      var timer = setInterval(function(){
-        if( typeof tinymce !== 'undefined' ){
-          // ライブラリの読み込み完了
-          // tinymceのスクリプトがロードされた直後は
-          // tinymce.init処理を実行すると
-          // 失敗することがあるため、間隔を開けて何度かリトライする
-
-          tinymce.init({
-            target: self.$el,
-            theme: 'modern',
-            skin: 'custom',
-            height: 500,
-            language: 'ja',
-            menubar: false,
-            resize: 'both',
-            statusbar: false,
-            plugins: 'link paste table code image template',
-            insert_toolbar: '',
-            // selection_toolbar: toolbar,
-            toolbar: toolbar,
-            // inline: true,
-            paste_as_text: true,
-            paste_data_images: false,
-            forced_root_block: false,
-            keep_styles: false,
-            hidden_input: false,
-            content_css: [],
-            branding: false,
-            elementpath: false,
-            style_formats: styles,
-            convert_urls: false,
-            relative_urls: true,
-            body_class : "ve",
-            content_css: '../dist/css/preview.css, ../dist/css/ve.css',
-            templates: [
-              {title: '左寄せ画像の回り込みテキスト',   content: '<div class="image-wrap"><p class="img img-left"><img src="https://placehold.jp/1500x800.png" /></p><p class="text">左寄せ画像の回り込みテキスト</p></div>'},
-              {title: '右寄せ画像の回り込みテキスト',   content: '<div class="image-wrap"><p class="img img-right"><img src="https://placehold.jp/1500x800.png" /></p><p class="text">右寄せ画像の回り込みテキスト</p></div>'},
-              {title: '中央寄せ画像の回り込みテキスト', content: '<div class="image-wrap"><p class="img img-center"><img src="https://placehold.jp/1500x800.png" /></p><p class="text">中央寄せ画像の回り込みテキスト</p></div>'},
-              {title: 'リンク',   content: '<div class="link-wrap"><a href="https://www.google.com/">google</a></div>'},
-              {title: 'リスト',   content: '<ul><li>あああ</li><li>いいい</li><li>ううう</li></ul>'},
-              {title: 'テーブル（1列目タイトル）', content: 
-                    `<table>
-                    <tbody>
-                    <tr>
-                    <th scope="row">プロジェクト参加者</th>
-                    <td>xxxxxxxxxxx</td>
-                    </tr>
-                    <tr>
-                    <th scope="row">キャラクタープロフィール</th>
-                    <td>あーなちゃん：<a href="#" target="_blank" rel="noopener">xxxxxxxxx</a><br /></td>
-                    </tr>
-                    <tr>
-                    <th scope="row">本件に関するお問い合わせ</th>
-                    <td>マスクプロジェクト委員会<br />メール：<a href="mailto:info@xxxxx.com">info@xxxxx.com</a><br />電話番号：xxxxxxx</td>
-                    </tr>
-                    </tbody>
-                    </table>`
-              },
-              {title: 'テーブル（1行目タイトル）', content: 
-                    `<table>
-                    <tbody>
-                    <tr>
-                    <th scope="row">プロジェクト参加者</th>
-                    <th>キャラクタープロフィール</th>
-                    <th>本件に関するお問い合わせ</th>
-                    </tr>
-                    <tr>
-                    <td scope="row">xxxxxxxxxxxxxx</td>
-                    <td>あーなちゃん：<a href="#" target="_blank" rel="noopener">xxxxxxxxx</a><br /></td>
-                    <td>マスクプロジェクト委員会<br />メール：<a href="mailto:info@xxxxx.com">info@xxxxx.com</a><br />電話番号：xxxxxxx</td>
-                    </tr>
-                    </tbody>
-                    </table>`
-              }
-            ],
-            file_browser_callback : function(field_name, url, type, win){ 
-                tinymce.activeEditor.windowManager.open({
-                    file: editor.options.uploaderPath, 
-                    title: 'ファイルのアップロード・選択',
-                    width: 1200,  
-                    height: 1200,
-                    resizable: 'yes'
-                }, {
-                    oninsert: function (url) {
-                        win.document.getElementById(field_name).value = url;
-                    }
-                });
-    
-                return false;
-            }, 
-            init_instance_callback: function(editor){
-              clearInterval(timer);
-              self.$emit('ve-init'); // 初期化完了を親コンポーネントに伝える
-            },
-            setup: function (editor) {
-              editor.on('change', function () {
-                self.$emit('input', editor.getContent());
-              });
-            }
-          });
-        }
-        count++;
-
-        if( count >= maxCount ){
-          // リトライ回数が上限に達した
-          clearInterval(timer);
-          return;
-        }
-
-      },500);
-
-    },
-
-    // TinyMCEのロード
-    loadTinyMCE: function(){
-      var self = this;
-
-      if( typeof tinymce==='undefined' ){
-        // TinyMCEがロードがされていない場合のみロードする
-        loadScript(SCRIPT_DIR_PATH + 'lib/tinymce/tinymce.min.js', function(){
-          self.init(self);
-        });
-      }else{
-        self.init(self);
-      }
-
-    },
-
-
-    initCkeditor: function(){
-      var self = this;
-      var editor = CKEDITOR.replace( self.$el,{
-          // extraPlugins : 'video,youtube',
-          toolbar : [
-            ['Styles'],
-      		['Image','Video'],
-      		['Link', 'Unlink'],
-      		['TextColor', 'BGColor'],
-      		['Bold','Italic','Underline','Strike'],
-            ['Table'],
-            ['RemoveFormat','Source', 'Maximize'],
-          ],
-          bodyClass: 've',
-          allowedContent : true,
-          height : 300,
-          filebrowserBrowseUrl: '/uploader/',
-          contentsCss: ['../dist/css/preview.css', '../dist/css/ve.css' ],
-          stylesSet : [
-            { name: 'ハイライト', element: 'span', attributes: {'class': 'highlight'} },
-            // { name: 'Red Background', element: 'p', styles: { 'background-color': 'red' } }
-          ] 
-      });
-      editor.on('change',function(){
-        self.$emit('input', editor.getData());
-      });
-
-    },
-
-    // Ckeditorのロード
-    loadCkeditor: function(){
-      var self = this;
-
-      if( typeof CKEDITOR==='undefined' ){
-        loadScript([
-            'https://cdnjs.cloudflare.com/ajax/libs/ckeditor/4.21.0/ckeditor.js'
-        ], function(){
-            CKEDITOR.disableAutoInline = true;
-            self.initCkeditor(self);
-        });
-      }else{
-        self.initCkeditor(self);
-      }
-    }
-
-  }
-};
-
     // テキストコンポーネント ///////////////////////////////////////////////////
 var textComponent = {
   template: '\
@@ -833,21 +565,15 @@ var textComponent = {
     }
   }
 };
-
     // ビジュアルエディタ対応テキストコンポーネント ///////////////////////////////////////////////////
 var VETextComponent = {
   template: '\
   <div class="item-wrap">\
-    <div class="item image ve-text" v-bind:class="{\'ve-unload\': !item.veInited, dragging:dragging}">\
+    <div class="item ve-text" v-bind:class="{\'ve-unload\': !item.veInited, dragging:dragging}">\
       <div class="col1">\
         <label v-on:dragstart="onLabelDragstart" v-on:dragend="onLabelDragend" draggable="true">テキスト</label>\
-        <div class="align">\
-          <input type="radio" value="left" v-model="item.align" v-bind:id="randomID[0]" /><label v-bind:for="randomID[0]"></label>\
-          <input type="radio" value="center" v-model="item.align" v-bind:id="randomID[1]" /><label v-bind:for="randomID[1]"></label>\
-          <input type="radio" value="right" v-model="item.align" v-bind:id="randomID[2]" /><label v-bind:for="randomID[2]"></label>\
-        </div>\
       </div>\
-      <div class="col2" v-bind:class="item.align">\
+      <div class="col2">\
         <div class="class-wrap" v-if="isCssClassEnabled">\
           <label :for="item.id+\'_css\'">CSSクラス</label>\
           <input type="text" v-model="item.className" :id="item.id+\'_css\'" />\
@@ -863,11 +589,6 @@ var VETextComponent = {
     <separator v-on:label-drop-on-separator="onLabelDrop" v-on:separator-click="onSeparatorClick" />\
   <div>',
   props: ['item'],
-  data: function(){
-    return {
-      randomID: [],
-    }
-  },
   created: function(){
   },
   components: {
@@ -875,9 +596,6 @@ var VETextComponent = {
     separator: separatorComponent
   },
   mixins: [itemMixin],
-  mounted: function(){
-    for(var i=0; i<3; i++) this.randomID.push('image-align-'+getRandomString(6,'numeric'));
-  },
   computed: {
     labelName: function(){
       return editor.options.typeNames[this.item.type];
@@ -895,7 +613,6 @@ var VETextComponent = {
     }
   }
 };
-
     // 画像コンポーネント ///////////////////////////////////////////////////
 var imageComponent = {
   template: '\
@@ -931,6 +648,200 @@ var imageComponent = {
             v-on:ve-init="onVEInit"\
             v-on:focus="onFocus"\
             v-on:blur="onBlur" />\
+        </div>\
+        <div class="alt-wrap" v-if="isAltEnabled">\
+          <label :for="item.id+\'_alt\'">ALT</label>\
+          <input type="text" v-model="item.altName" :id="item.id+\'_alt\'" />\
+        </div>\
+        <button class="remove" tabindex="-1" v-on:click.prevent="onFileDelete">画像をクリア</button>\
+        <button class="uploader" tabindex="-1" v-on:click.prevent="selectFile">アップロード済みの画像から選択</button>\
+      </div>\
+      <div class="col3"><button v-on:click.prevent="onItemDelete" tabindex="-1"><span>削除</span></button></div>\
+    </div>\
+    <separator v-on:label-drop-on-separator="onLabelDrop" v-on:separator-click="onSeparatorClick" />\
+  </div>',
+  props: ['item'],
+  data: function(){
+    return {
+      randomID: [],
+      dragover: false,
+      isDndSupported: editor.options.uploaderDomain ? false : true,
+      isLoadingFile: false,
+      uploadProgress: 0,
+      inputComponent: editor.options.inlineVe ? 'visualeditor' : 'plaintexteditor',
+      focus: false
+    }
+  },
+  components: {
+    visualeditor: VEComponent,
+    plaintexteditor: plainTextInputComponent,
+    separator: separatorComponent
+  },
+  mixins: [itemMixin],
+  created: function(){
+  },
+  mounted: function(){
+    for(var i=0; i<3; i++) this.randomID.push('image-align-'+getRandomString(6,'numeric'));
+  },
+  computed: {
+    // ALTの入力を許可するか
+    isAltEnabled: function () {
+      return editor.options.allowImageAlt;
+    }
+  },
+  methods: {
+    // ドラッグ&ドロップ処理が可能か
+    canDrop: function(){
+      return this.isDndSupported && !droppingItem; // 要素のドラッグ&ドロップ処理でなければドロップ処理可
+    },
+
+    // アップローダボタンクリック
+    selectFile: function(ev){
+      // アップローダの表示
+      ArticleEditor.showUploader(
+        editor.options.uploaderDomain,
+        editor.options.uploaderPath,
+        editor.options.uploaderDir,
+        this.setImage
+      );
+      return false;
+    },
+
+    // VE上でのテキスト入力イベント
+    onTextChange: function(text){
+      this.item.text = text;
+    },
+
+    // アップロードファイル指定
+    setImage: function(path){
+      var acceptable = editor.options.imageTypes;
+      if( path && acceptable ){
+        var reg = new RegExp('\.('+ acceptable.join('|') +')$');
+        if( !path.match( reg ) ){
+          alert('画像の種類は ' + acceptable.join('・') + ' のいずれかである必要があります');
+          return false;
+        }
+      }
+
+      this.item.image = path;
+    },
+
+    // ファイルの削除
+    onFileDelete: function(){
+      if( !confirm('画像をクリアします。よろしいですか？\n(アップロードされたファイルは削除されません)') ) return false;
+      this.setImage( null );
+    },
+
+    // VEの初期化完了
+    onVEInit: function(){
+      this.item.veInited = true;
+    },
+
+    // ファイルのドラッグオーバー
+    onDragover: function(ev){
+      if( !this.canDrop() ) return false;
+
+      ev.dataTransfer.dropEffect = 'copy';
+      this.dragover = true;
+    },
+
+    // ファイルのドラッグリーブ
+    onDragleave: function(ev){
+      if( !this.canDrop() ) return false;
+
+      this.dragover = false;
+    },
+
+    // ファイルのドロップ
+    onDrop: function(ev){
+      if( !this.canDrop() ) return false;
+
+      var self = this;
+      this.dragover = false;
+      this.isLoadingFile = true;
+      this.uploadProgress = 0;
+
+      // ドロップされたファイルのチェック
+      var files = ev.dataTransfer.files;
+      file_count = files.length;
+
+      var error = '';
+      if( file_count == 0 ) error = '画像が指定されていません';
+      else if( file_count > 1 ) error = 'アップロードできる画像は1個までです';
+
+      var file = files[0];
+      if( !error && file.size > sizeToByte(editor.options.maxFileSize) ) error = '画像のサイズが上限('+editor.options.maxFileSize+')を超過しています';
+
+      var acceptable = editor.options.imageTypes;
+      if( !error && acceptable ){
+        var reg = new RegExp('\.('+ acceptable.join('|') +')$');
+        if( !file.name.match( reg ) ){
+          error = '画像の種類は ' + acceptable.join('・') + ' のいずれかである必要があります';
+        }
+      }
+      if( error ){
+        this.isLoadingFile = false;
+        alert( error );
+        return false;
+      }
+
+      // ファイル送信成功
+      var onSuccess = function(file){
+        self.isLoadingFile = false;
+        self.setImage(file); // 画像のセット
+      };
+      // ファイル送信失敗
+      var onError = function(err){
+        self.isLoadingFile = false;
+        alert(err); // エラーを表示
+      };
+      var progress = function(progress){
+        self.uploadProgress = progress*100;
+      };
+
+      // ファイルの送信処理
+      ArticleEditor.upload.call(
+        this,
+        file,
+        editor.options.uploaderPath,
+        editor.options.uploaderDir,
+        onSuccess,
+        onError,
+        progress
+      );
+
+    },
+
+    onFocus: function(){
+      this.focus = true;
+    },
+
+    onBlur: function(){
+      this.focus = false;
+    }
+  }
+};
+    // 画像コンポーネント ///////////////////////////////////////////////////
+var imageOnlyComponent = {
+  template: '\
+  <div class="item-wrap">\
+    <div class="item image" v-bind:class="{\'ve-unload\': !item.veInited, nofile: !item.image, dragover:dragover, dragging:dragging, focus:focus}" v-on:dragover.prevent.stop="onDragover" v-on:dragleave="onDragleave" v-on:drop.prevent.stop="onDrop">\
+      <div class="loading" v-if="isLoadingFile"><div class="progress-wrap"><div class="progress" v-bind:style="{width: uploadProgress + \'%\'}"></div></div></div>\
+      <div class="col1">\
+        <label v-on:dragstart="onLabelDragstart" v-on:dragend="onLabelDragend" draggable="true">画像のみ</label>\
+      </div>\
+      <div class="col2">\
+        <div class="class-wrap" v-if="isCssClassEnabled">\
+          <label :for="item.id+\'_css\'">CSSクラス</label>\
+          <input type="text" v-model="item.className" :id="item.id+\'_css\'" />\
+        </div>\
+        <div class="dnd" v-if="isDndSupported" v-on:dblclick="selectFile">\
+          <div class="msg">画像をドラッグ＆ドロップ</div>\
+        </div>\
+        <div class="content">\
+          <div class="img-only">\
+            <img v-bind:src="item.image" v-on:dblclick="selectFile" draggable="false" />\
+          </div>\
         </div>\
         <div class="alt-wrap" v-if="isAltEnabled">\
           <label :for="item.id+\'_alt\'">ALT</label>\
@@ -1998,7 +1909,7 @@ var tableComponent = {
     headerRow: function(pos, onoff){
       for(var i=0; i<this.colNum; i++){
         // 列全体が見出しになっている場合は、その列は見出しを解除しない
-        // if(onoff==false && this.isHeaderCol(i)) continue;
+        if(onoff==false && this.isHeaderCol(i)) continue;
         this.item.rows[pos].cols[i].header = onoff;
       }
     },
@@ -2007,7 +1918,7 @@ var tableComponent = {
     headerCol: function(pos, onoff){
       for(var i=0; i<this.rowNum; i++){
         // 行全体が見出しになっている場合は、その行は見出しを解除しない
-        // if(onoff==false && this.isHeaderRow(i)) continue;
+        if(onoff==false && this.isHeaderRow(i)) continue;
         this.item.rows[i].cols[pos].header = onoff;
       }
     },
@@ -2318,7 +2229,6 @@ var tableComponent = {
 
   }
 };
-
     // HTMLコンポーネント ///////////////////////////////////////////////////
 var htmlComponent = {
   template: '\
@@ -2395,925 +2305,19 @@ var htmlComponent = {
     }
   }
 };
-    // リンクコンポーネント ///////////////////////////////////////////////////
-var linkComponent_for_kmu = {
-  template: '\
-  <div class="item-wrap">\
-    <div class="item link" >\
-      <div class="loading" v-if="isLoadingFile"><div class="progress-wrap"><div class="progress" v-bind:style="{width: uploadProgress + \'%\'}"></div></div></div>\
-      <div class="col1">\
-        <label v-on:dragstart="onLabelDragstart" v-on:dragend="onLabelDragend" draggable="true">リンク</label>\
-      </div>\
-      <div class="col2">\
-        <div class="class-wrap" v-if="isCssClassEnabled">\
-          <label :for="item.id+\'_css\'">CSSクラス</label>\
-          <input type="text" v-model="item.className" :id="item.id+\'_css\'" />\
-        </div>\
-        <div class="wrap">\
-          <ul>\
-            <li><label>URL</label><input type="text" placeholder="http://www.example.com/" class="url" v-model="item.links[0].url" v-on:keydown.enter.prevent="" /></li>\
-            <li><label>テキスト</label><input type="text" placeholder="リンクに設定するテキストを入力" class="text" v-model="item.links[0].text" v-on:keydown.enter.prevent="" /></li>\
-            <li class="link-target"><label><input type="checkbox" v-model="item.links[0].newWindow" />別ウィンドウで開く</label></li>\
-          </ul>\
-          <button class="uploader" tabindex="-1" v-on:click.prevent="onUploaderClick(0)">アップロード済みのファイルから選択</button>\
-        </div>\
-        <div class="wrap">\
-          <ul>\
-            <li><label>URL</label><input type="text" placeholder="http://www.example.com/" class="url" v-model="item.links[1].url" v-on:keydown.enter.prevent="" /></li>\
-            <li><label>テキスト</label><input type="text" placeholder="リンクに設定するテキストを入力" class="text" v-model="item.links[1].text" v-on:keydown.enter.prevent="" /></li>\
-            <li class="link-target"><label><input type="checkbox" v-model="item.links[1].newWindow" />別ウィンドウで開く</label></li>\
-          </ul>\
-          <button class="uploader" tabindex="-1" v-on:click.prevent="onUploaderClick(1)">アップロード済みのファイルから選択</button>\
-        </div>\
-      </div>\
-      <div class="col3"><button v-on:click.prevent="onItemDelete" tabindex="-1"><span>削除</span></button></div>\
-    </div>\
-    <separator v-on:label-drop-on-separator="onLabelDrop" v-on:separator-click="onSeparatorClick" />\
-  </div>',
-  props: ['item'],
-  components: {
-    separator: separatorComponent
-  },
-  mixins: [itemMixin],
-  data: function(){
-    return {
-      dragover: false,
-      isDndSupported: editor.options.uploaderDomain ? false : true,
-      isLoadingFile: false,
-      uploadProgress: 0
-    }
-  },
-  methods: {
-    // ドラッグ&ドロップ処理が可能か
-    canDrop: function(){
-      return this.isDndSupported && !droppingItem; // 要素のドラッグ&ドロップ処理でなければドロップ処理可
-    },
-
-    // アップローダボタンクリック 
-    onUploaderClick: function(index){
-        
-      var _index = index;
-      var _this = this;
-      // アップローダの表示
-      ArticleEditor.showUploader( 
-        editor.options.uploaderDomain, 
-        editor.options.uploaderPath, 
-        editor.options.uploaderDir, 
-        function(path){
-          var acceptable = editor.options.fileTypes;
-          if( acceptable ){
-           var reg = new RegExp('\.('+ acceptable.join('|') +')$');
-           if( !path.match( reg ) ){
-             alert('ファイルの種類は ' + acceptable.join('・') + ' のいずれかである必要があります');
-             return false;
-           }
-          }
-          _this.item.links[_index].url = path;
-        }
-      );
-      return false;
-    }
-
-  }
-};
-
-    // 画像コンポーネント ///////////////////////////////////////////////////
-var imageComponent_for_kmu = {
-  template: '\
-  <div class="item-wrap">\
-    <div class="item image" v-bind:class="{\'ve-unload\': !item.veInited, nofile: !item.image, dragover:dragover, dragging:dragging}" v-on:dragover.prevent.stop="onDragover" v-on:dragleave="onDragleave" v-on:drop.prevent.stop="onDrop">\
-      <div class="loading" v-if="isLoadingFile"><div class="progress-wrap"><div class="progress" v-bind:style="{width: uploadProgress + \'%\'}"></div></div></div>\
-      <div class="col1">\
-        <label v-on:dragstart="onLabelDragstart" v-on:dragend="onLabelDragend" draggable="true">画像</label>\
-      </div>\
-      <div class="col2">\
-        <div class="class-wrap" v-if="isCssClassEnabled">\
-          <label :for="item.id+\'_css\'">CSSクラス</label>\
-          <input type="text" v-model="item.className" :id="item.id+\'_css\'" />\
-        </div>\
-        <div class="dnd" v-if="isDndSupported" v-on:dblclick="selectFile">\
-          <div class="msg">画像をドラッグ＆ドロップ</div>\
-        </div>\
-        <div class="content" style="border:none">\
-          <div class="img" v-bind:class="item.align" style="margin:0px;padding-right:20px;box-sizing:border-box;">\
-            <img v-bind:src="item.image" v-on:dblclick="selectFile" draggable="false" style="margin-right:10px;display:block;" />\
-          </div>\
-          <div class="img left" style="margin:0px;width:100%;">\
-            <label>見出し</label>\
-            <input type="text" v-model="item.heading" ref="inputElement" style="margin-bottom:10px" @keydown.enter.prevent="handleEnterKey"/>\
-            <label>テキスト</label>\
-            <component\
-              v-bind:is="inputComponent"\
-              v-bind:isPlaceholderEnabled=true\
-              class="text"\
-              v-bind:class="{focus:focus}"\
-              style="border: 1px solid #aaa; padding:8px 5px; min-height:9em;"\
-              v-bind:text=item.text\
-              v-on:input="onTextChange"\
-              v-on:ve-init="onVEInit"\
-              v-on:focus="onFocus"\
-              v-on:blur="onBlur" />\
-              <div class="wrap" style="margin-top:10px">\
-                <ul>\
-                  <li><label>リンク(URL)</label><input type="text" placeholder="http://www.example.com/" class="url" v-model="item.link_url" v-on:keydown.enter.prevent="" style="margin-top:3px" /></li>\
-                  <li style="margin-top:10px"><label>リンク(テキスト)</label><input type="text" placeholder="リンクに設定するテキストを入力" class="text" v-model="item.link_text" v-on:keydown.enter.prevent="" style="margin-top:3px; min-height:1em;" /></li>\
-                </ul>\
-              </div>\
-          </div>\
-        </div>\
-        <div class="alt-wrap" v-if="isAltEnabled">\
-          <label :for="item.id+\'_alt\'">ALT</label>\
-          <input type="text" v-model="item.altName" :id="item.id+\'_alt\'" />\
-        </div>\
-        <button class="remove" tabindex="-1" v-on:click.prevent="onFileDelete">画像をクリア</button>\
-        <button class="uploader" tabindex="-1" v-on:click.prevent="selectFile">アップロード済みの画像から選択</button>\
-      </div>\
-      <div class="col3"><button v-on:click.prevent="onItemDelete" tabindex="-1"><span>削除</span></button></div>\
-    </div>\
-    <separator v-on:label-drop-on-separator="onLabelDrop" v-on:separator-click="onSeparatorClick" />\
-  </div>',
-  props: ['item'],
-  data: function(){
-    return {
-      randomID: [],
-      dragover: false,
-      isDndSupported: editor.options.uploaderDomain ? false : true,
-      isLoadingFile: false,
-      uploadProgress: 0,
-      inputComponent: editor.options.inlineVe ? 'visualeditor' : 'plaintexteditor',
-      focus: false
-    }
-  },
-  components: {
-    visualeditor: VEComponent,
-    plaintexteditor: plainTextInputComponent,
-    separator: separatorComponent
-  },
-  mixins: [itemMixin],
-  created: function(){
-  },
-  mounted: function(){
-    for(var i=0; i<3; i++) this.randomID.push('image-align-'+getRandomString(6,'numeric'));
-  },
-  computed: {
-    // ALTの入力を許可するか
-    isAltEnabled: function () {
-      return editor.options.allowImageAlt;
-    }
-  },
-  methods: {
-    // ドラッグ&ドロップ処理が可能か
-    canDrop: function(){
-      return this.isDndSupported && !droppingItem; // 要素のドラッグ&ドロップ処理でなければドロップ処理可
-    },
-
-    handleEnterKey() {
-      // Enterキーが押されたときの処理
-      return true;
-    },
-    // アップローダボタンクリック
-    selectFile: function(ev){
-      // アップローダの表示
-      ArticleEditor.showUploader(
-        editor.options.uploaderDomain,
-        editor.options.uploaderPath,
-        editor.options.uploaderDir,
-        this.setImage
-      );
-      return false;
-    },
-
-    // VE上でのテキスト入力イベント
-    onTextChange: function(text){
-      this.item.text = text;
-    },
-
-    // アップロードファイル指定
-    setImage: function(path){
-      var acceptable = editor.options.imageTypes;
-      if( path && acceptable ){
-        var reg = new RegExp('\.('+ acceptable.join('|') +')$');
-        if( !path.match( reg ) ){
-          alert('画像の種類は ' + acceptable.join('・') + ' のいずれかである必要があります');
-          return false;
-        }
-      }
-
-      this.item.image = path;
-    },
-
-    // ファイルの削除
-    onFileDelete: function(){
-      if( !confirm('画像をクリアします。よろしいですか？\n(アップロードされたファイルは削除されません)') ) return false;
-      this.setImage( null );
-    },
-
-    // VEの初期化完了
-    onVEInit: function(){
-      this.item.veInited = true;
-    },
-
-    // ファイルのドラッグオーバー
-    onDragover: function(ev){
-      if( !this.canDrop() ) return false;
-
-      ev.dataTransfer.dropEffect = 'copy';
-      this.dragover = true;
-    },
-
-    // ファイルのドラッグリーブ
-    onDragleave: function(ev){
-      if( !this.canDrop() ) return false;
-
-      this.dragover = false;
-    },
-
-    // ファイルのドロップ
-    onDrop: function(ev){
-      if( !this.canDrop() ) return false;
-
-      var self = this;
-      this.dragover = false;
-      this.isLoadingFile = true;
-      this.uploadProgress = 0;
-
-      // ドロップされたファイルのチェック
-      var files = ev.dataTransfer.files;
-      file_count = files.length;
-
-      var error = '';
-      if( file_count == 0 ) error = '画像が指定されていません';
-      else if( file_count > 1 ) error = 'アップロードできる画像は1個までです';
-
-      var file = files[0];
-      if( !error && file.size > sizeToByte(editor.options.maxFileSize) ) error = '画像のサイズが上限('+editor.options.maxFileSize+')を超過しています';
-
-      var acceptable = editor.options.imageTypes;
-      if( !error && acceptable ){
-        var reg = new RegExp('\.('+ acceptable.join('|') +')$');
-        if( !file.name.match( reg ) ){
-          error = '画像の種類は ' + acceptable.join('・') + ' のいずれかである必要があります';
-        }
-      }
-      if( error ){
-        this.isLoadingFile = false;
-        alert( error );
-        return false;
-      }
-
-      // ファイル送信成功
-      var onSuccess = function(file){
-        self.isLoadingFile = false;
-        self.setImage(file); // 画像のセット
-      };
-      // ファイル送信失敗
-      var onError = function(err){
-        self.isLoadingFile = false;
-        alert(err); // エラーを表示
-      };
-      var progress = function(progress){
-        self.uploadProgress = progress*100;
-      };
-
-      // ファイルの送信処理
-      ArticleEditor.upload.call(
-        this,
-        file,
-        editor.options.uploaderPath,
-        editor.options.uploaderDir,
-        onSuccess,
-        onError,
-        progress
-      );
-
-    },
-
-    onFocus: function(){
-      this.focus = true;
-    },
-
-    onBlur: function(){
-      this.focus = false;
-    }
-  }
-};
-
-    
-// リストコンポーネント ///////////////////////////////////////////////////
-var listRowComponent_for_kmu = {
-  template: '\
-  <div class="list-row-wrap">\
-    <div class="row" v-bind:class="{dragging:dragging, focus:focus}" v-bind:draggable="draggable" v-on:dragstart="onRowDragstart" v-on:dragend="onRowDragend">\
-      <label v-on:mouseover="onLabelMouseover" v-on:mouseout="onLabelMouseout"></label>\
-      <input type="text" v-model="row.text" v-on:focus="onFocus" v-on:blur="onBlur" v-on:keydown.enter.prevent="" placeholder="テキストを入力してください" v-if="!isLink"/>\
-      <input type="text" v-model="row.text" v-on:focus="onFocus" v-on:blur="onBlur" v-on:keydown.enter.prevent="" style="width:48%" placeholder="テキストを入力してください" v-if="isLink"/>\
-      <input type="text" v-model="row.url" v-on:focus="onFocus" v-on:blur="onBlur" v-on:keydown.enter.prevent="" style="width:47%;padding-left:6px"  placeholder="URLを入力してください" v-if="isLink"/>\
-      <button class="del" tabindex="-1" v-on:click.prevent="onRowDelete" style="margin-left: 0.5rem;"></button>\
-    </div>\
-    <listSeparator v-bind:droppingRow="droppingRow" v-on:row-drop="onRowDrop" />\
-  </div>',
-  props: ['row', 'droppingRow','isLink'],
-  components: {
-    listSeparator: listSeparatorComponent
-  },
-  data: function(){
-    return {
-      dragging: false,
-      draggable: false,
-      focus: false
-    };
-  },
-  methods: {
-    onRowDelete: function(){
-      this.$emit('row-delete', this.row);
-    },
-    onLabelMouseover: function(){
-      this.draggable = true;
-    },
-    onLabelMouseout: function(){
-      this.draggable = false;
-    },
-    onRowDragstart: function(ev){
-      // _d('label dragstart');
-
-      ev.dataTransfer.setData('text', 'element');
-      ev.dataTransfer.effectAllowed = 'move';
-
-      this.dragging = true;
-      this.$emit('row-dragstart', this.row);
-    },
-    onRowDragend: function(ev){
-      this.dragging = false;
-      this.$emit('row-dragend', this.row);
-    },
-    onRowDrop: function(row){
-      this.dragging = false;
-      this.$emit('row-drop', this.row);
-    },
-    onFocus: function(){
-      this.focus = true;
-    },
-    onBlur: function(){
-      this.focus = false;
-    }
-  }
-};
-
-// リスト
-var listComponent_for_kmu = {
-  template: '\
-  <div class="item-wrap">\
-    <div class="item list" v-bind:class="{dragging:dragging}">\
-      <div class="col1">\
-        <label v-on:dragstart="onLabelDragstart" v-on:dragend="onLabelDragend" draggable="true">リスト</label>\
-      </div>\
-      <div class="col2">\
-        <div class="class-wrap" v-if="isCssClassEnabled">\
-          <label :for="item.id+\'_css\'">CSSクラス</label>\
-          <input type="text" v-model="item.className" :id="item.id+\'_css\'" />\
-        </div>\
-        <div class="list-wrap">\
-          <listSeparator v-bind:droppingRow="droppingRow" v-on:row-drop="onRowDrop" />\
-          <transition-group name="list-row" tag="div">\
-          <row v-for="(row, index) in item.rows" :isLink=item.isLink v-bind:row=row v-bind:droppingRow="droppingRow" :key="row.id" v-on:row-delete="deleteRow" v-on:row-dragstart="onRowDragstart" v-on:row-dragend="onRowDragend" v-on:row-drop="onRowDrop" />\
-          </transition-group>\
-        </div>\
-        <div class="ctl">\
-          <button class="add" tabindex="-1" v-on:click.prevent="addRow">行の追加</button>\
-        </div>\
-      </div>\
-      <div class="col3"><button v-on:click.prevent="onItemDelete" tabindex="-1"><span>削除</span></button></div>\
-    </div>\
-    <separator v-on:label-drop-on-separator="onLabelDrop" v-on:separator-click="onSeparatorClick" />\
-  </div>',
-  props: ['item'],
-  components: {
-    row: listRowComponent_for_kmu,
-    separator: separatorComponent,
-    listSeparator: listSeparatorComponent
-  },
-  data: function(){
-    return {
-      droppingRow: null
-    };
-  },
-  mixins: [itemMixin],
-  methods: {
-    // 行の追加
-    addRow: function(){
-      var rand = getRandomString();
-      console.log(rand);
-      this.item.rows.push({ component: 'row', text: null, id: rand});
-      console.log(this.item.rows)
-    },
-    // 行の削除
-    deleteRow: function(del_row){
-      if( del_row.text && !confirm('行を削除します。よろしいですか？') ) return false;
-
-      var pos = this.item.rows.indexOf(del_row);
-      if( pos === -1 ) return false;
-
-      if( this.item.rows.length <= 1 ){ // 残り1行の場合
-        this.item.rows[0].text = null;
-      }else{
-        this.item.rows.splice(pos,1); // 削除対象の行を削除
-      }
-
-    },
-
-    // 行のドラッグスタート（並び替え）
-    onRowDragstart: function(row){
-      this.droppingRow = row; // ドラッグ中の行を記録
-    },
-
-    // 要素のドラッグエンド
-    onRowDragend: function(row){
-      this.droppingRow = null;  // ドラッグ中の行をリセット
-    },
-
-    // 行のドロップ
-    onRowDrop: function(row){
-      if( !this.droppingRow ) return false;
-
-      var dest_pos = row ? this.item.rows.indexOf(row)+1 : 0;
-      var src_pos = this.item.rows.indexOf(this.droppingRow);
-      this.droppingRow = null; // ドラッグ中の行をリセット
-
-      // 移動先が今から変更がなければスキップ
-      if( dest_pos===src_pos || dest_pos===src_pos+1 ) return false;
-
-      // 要素を入れ替え
-      var move_row = this.item.rows.splice( src_pos, 1 );
-      dest_pos = row ? this.item.rows.indexOf(row)+1 : 0;
-      this.item.rows.splice(dest_pos, 0, move_row[0]);
-
-    }
-  
-  }
-};
-
-    
-// リストコンポーネント ///////////////////////////////////////////////////
-var listLinkRowComponent_for_kmu = {
-  template: '\
-  <div class="list-row-wrap">\
-    <div class="row" v-bind:class="{dragging:dragging, focus:focus}" v-bind:draggable="draggable" v-on:dragstart="onRowDragstart" v-on:dragend="onRowDragend">\
-      <label v-on:mouseover="onLabelMouseover" v-on:mouseout="onLabelMouseout"></label>\
-      <input type="text" v-model="row.text" v-on:focus="onFocus" v-on:blur="onBlur" v-on:keydown.enter.prevent="" style="width:48%" placeholder="テキストを入力してください"/>\
-      <input type="text" v-model="row.url" v-on:focus="onFocus" v-on:blur="onBlur" v-on:keydown.enter.prevent="" style="width:47%;padding-left:6px"  placeholder="URLを入力してください"/>\
-      <button class="del" tabindex="-1" v-on:click.prevent="onRowDelete" style="margin-left: 0.5rem;"></button>\
-    </div>\
-    <listSeparator v-bind:droppingRow="droppingRow" v-on:row-drop="onRowDrop" />\
-  </div>',
-  props: ['row', 'droppingRow'],
-  components: {
-    listSeparator: listSeparatorComponent
-  },
-  data: function(){
-    return {
-      dragging: false,
-      draggable: false,
-      focus: false
-    };
-  },
-  methods: {
-    onRowDelete: function(){
-      this.$emit('row-delete', this.row);
-    },
-    onLabelMouseover: function(){
-      this.draggable = true;
-    },
-    onLabelMouseout: function(){
-      this.draggable = false;
-    },
-    onRowDragstart: function(ev){
-      // _d('label dragstart');
-
-      ev.dataTransfer.setData('text', 'element');
-      ev.dataTransfer.effectAllowed = 'move';
-
-      this.dragging = true;
-      this.$emit('row-dragstart', this.row);
-    },
-    onRowDragend: function(ev){
-      this.dragging = false;
-      this.$emit('row-dragend', this.row);
-    },
-    onRowDrop: function(row){
-      this.dragging = false;
-      this.$emit('row-drop', this.row);
-    },
-    onFocus: function(){
-      this.focus = true;
-    },
-    onBlur: function(){
-      this.focus = false;
-    }
-  }
-};
-
-// リスト
-var listLinkComponent_for_kmu = {
-  template: '\
-  <div class="item-wrap">\
-    <div class="item list" v-bind:class="{dragging:dragging}">\
-      <div class="col1">\
-        <label v-on:dragstart="onLabelDragstart" v-on:dragend="onLabelDragend" draggable="true">リンク</label>\
-      </div>\
-      <div class="col2">\
-        <div class="list-wrap">\
-          <listSeparator v-bind:droppingRow="droppingRow" v-on:row-drop="onRowDrop" />\
-          <transition-group name="list-row" tag="div">\
-          <row v-for="(row, index) in item.rows" v-bind:row=row v-bind:droppingRow="droppingRow" :key="row.id" v-on:row-delete="deleteRow" v-on:row-dragstart="onRowDragstart" v-on:row-dragend="onRowDragend" v-on:row-drop="onRowDrop" />\
-          </transition-group>\
-        </div>\
-        <div class="ctl">\
-          <button class="add" tabindex="-1" v-on:click.prevent="addRow">行の追加</button>\
-        </div>\
-      </div>\
-      <div class="col3"><button v-on:click.prevent="onItemDelete" tabindex="-1"><span>削除</span></button></div>\
-    </div>\
-    <separator v-on:label-drop-on-separator="onLabelDrop" v-on:separator-click="onSeparatorClick" />\
-  </div>',
-  props: ['item'],
-  components: {
-    row: listLinkRowComponent_for_kmu,
-    separator: separatorComponent,
-    listSeparator: listSeparatorComponent
-  },
-  data: function(){
-    return {
-      droppingRow: null
-    };
-  },
-  mixins: [itemMixin],
-  methods: {
-    // 行の追加
-    addRow: function(){
-      var rand = getRandomString();
-      console.log(rand);
-      this.item.rows.push({ component: 'row', text: null, url: null, id: rand});
-      console.log(this.item.rows)
-    },
-    // 行の削除
-    deleteRow: function(del_row){
-      if( del_row.text && !confirm('行を削除します。よろしいですか？') ) return false;
-
-      var pos = this.item.rows.indexOf(del_row);
-      if( pos === -1 ) return false;
-
-      if( this.item.rows.length <= 1 ){ // 残り1行の場合
-        this.item.rows[0].text = null;
-      }else{
-        this.item.rows.splice(pos,1); // 削除対象の行を削除
-      }
-
-    },
-
-    // 行のドラッグスタート（並び替え）
-    onRowDragstart: function(row){
-      this.droppingRow = row; // ドラッグ中の行を記録
-    },
-
-    // 要素のドラッグエンド
-    onRowDragend: function(row){
-      this.droppingRow = null;  // ドラッグ中の行をリセット
-    },
-
-    // 行のドロップ
-    onRowDrop: function(row){
-      if( !this.droppingRow ) return false;
-
-      var dest_pos = row ? this.item.rows.indexOf(row)+1 : 0;
-      var src_pos = this.item.rows.indexOf(this.droppingRow);
-      this.droppingRow = null; // ドラッグ中の行をリセット
-
-      // 移動先が今から変更がなければスキップ
-      if( dest_pos===src_pos || dest_pos===src_pos+1 ) return false;
-
-      // 要素を入れ替え
-      var move_row = this.item.rows.splice( src_pos, 1 );
-      dest_pos = row ? this.item.rows.indexOf(row)+1 : 0;
-      this.item.rows.splice(dest_pos, 0, move_row[0]);
-
-    }
-  
-  }
-};
-
-    // youtubeコンポーネント ///////////////////////////////////////////////////
-var youtubeComponent = {
-  template: '\
-  <div class="item-wrap">\
-    <div class="item text youtube">\
-      <div class="col1">\
-        <label v-on:dragstart="onLabelDragstart" v-on:dragend="onLabelDragend" draggable="true">{{labelName}}</label>\
-      </div>\
-      <div class="col2">\
-        <div class="class-wrap" v-if="isCssClassEnabled">\
-          <label :for="item.id+\'_css\'">CSSクラス</label>\
-          <input type="text" v-model="item.className" :id="item.id+\'_css\'" />\
-        </div>\
-        <input type="text" v-model="item.text" v-on:input="onInput" ref="inputElement" />\
-      </div>\
-      <div class="col3"><button v-on:click.prevent="onItemDelete" tabindex="-1"><span>削除</span></button></div>\
-    </div>\
-    <separator v-on:label-drop-on-separator="onLabelDrop" v-on:separator-click="onSeparatorClick" />\
-  </div>',
-  props: ['item'],
-  components: {
-    separator: separatorComponent
-  },
-  mixins: [itemMixin],
-  mounted: function(){
-    // テキストエリアの高さ調整のためにinputイベントを強制発火
-    // jqueryではなぜかinputイベントが発火しないため
-    // 生のdomで実装する
-    var elm = this.$refs.inputElement;
-    if( document.createEvent ){
-      // IE以外
-      var evt = document.createEvent('HTMLEvents');
-      evt.initEvent('input', true, true ); // event type, bubbling, cancelable
-      elm.dispatchEvent(evt);
-    }else{
-      // IE
-      var evt = document.createEventObject();
-      elm.fireEvent('oninput', evt);
-    }
-  },
-  computed: {
-    labelName: function(){
-      return editor.options.typeNames['youtube'];
-    }
-  },
-  methods: {
-    onInput: function(ev){
-      // 入力値に応じてリサイズする
-
-      var def_style = window.getComputedStyle(ev.target);
-      var line_height = def_style.lineHeight.split('px')[0];
-      var padding = def_style.paddingTop.split('px')[0] + def_style.paddingBottom.split('px')[0];
-
-      if( ev.target.scrollHeight > ev.target.offsetHeight ){
-        ev.target.style.height = ev.target.scrollHeight+3 + 'px';
-      }else{
-          
-          var height;
-          while( true ){
-            height = ev.target.style.height.split('px')[0];
-
-            ev.target.style.height = height - line_height +'px';
-            if( ev.target.scrollHeight > ev.target.offsetHeight ){
-              ev.target.style.height = ev.target.scrollHeight+3 + 'px';
-              // _d(ev.target.scrollHeight + padding_top + padding_bottom);
-              break;
-            }
-            break;
-          }
-      }
-      // _d(ev.target.scrollHeight);
-      // _d(ev.target.offsetHeight);
-
-    }
-  }
-};
-
-    // 画像コンポーネント ///////////////////////////////////////////////////
-var VSImageComponent = {
-  template: '\
-  <div class="item-wrap">\
-  <div class="item text" style="max-width:9%;float:left;"><div class="col1">\
-    <label v-on:dragstart="onLabelDragstart" v-on:dragend="onLabelDragend" draggable="true">画像</label>\
-  </div></div>\
-    <div class="item image" style="width:38%;float:left;" v-bind:class="{\'ve-unload\': !item.veInited, nofile: !item.image1, dragover:dragover.image1,  dragging:dragging, focus:focus}" v-on:dragover.prevent.stop="onDragover($event,\'image1\')" v-on:dragleave="onDragleave($event,\'image1\')" v-on:drop.prevent.stop="onDrop($event,\'image1\')">\
-      <div class="loading" v-if="isLoadingFile.image1"><div class="progress-wrap"><div class="progress" v-bind:style="{width: uploadProgress + \'%\'}"></div></div></div>\
-      <div class="col2"  style="width:100%">\
-        <div class="dnd" v-if="isDndSupported" v-on:dblclick="selectFile(\'image1\')">\
-          <div class="msg">画像をドラッグ＆ドロップ<br>（最大ファイルサイズ:{{this.maxFileSize}}）</div>\
-        </div>\
-          <div class="img" v-bind:class="item.align">\
-            <img v-bind:src="item.image1" v-on:dblclick="selectFile(\'image1\')" draggable="false" style="max-width:100%"/>\
-          </div>\
-        <div class="alt-wrap" v-if="isAltEnabled">\
-          <input type="text" v-model="item.image1_alt" :id="item.image1_alt" style="width:100% !important" placeholder="altを入力してください" />\
-        </div>\
-        <button class="remove" tabindex="-1" v-on:click.prevent="onFileDelete(\'image1\')">画像をクリア</button>\
-        <button class="uploader" tabindex="-1" v-on:click.prevent="selectFile(\'image1\')">アップロード済みの画像から選択</button>\
-      </div>\
-    </div>\
-    <div class="item image"  style="width:38%;float:left;" v-bind:class="{\'ve-unload\': !item.veInited, nofile: !item.image2, dragover:dragover.image2, dragging:dragging, focus:focus}" v-on:dragover.prevent.stop="onDragover($event,\'image2\')" v-on:dragleave="onDragleave($event,\'image2\')" v-on:drop.prevent.stop="onDrop($event,\'image2\')">\
-      <div class="loading" v-if="isLoadingFile.image2"><div class="progress-wrap"><div class="progress" v-bind:style="{width: uploadProgress + \'%\'}"></div></div></div>\
-      <div class="col2"  style="width:100%">\
-        <div class="dnd" v-if="isDndSupported" v-on:dblclick="selectFile(\'image2\')">\
-          <div class="msg">画像をドラッグ＆ドロップ<br>（最大ファイルサイズ:{{this.maxFileSize}}）</div>\
-        </div>\
-          <div class="img" v-bind:class="item.align">\
-            <img v-bind:src="item.image2" v-on:dblclick="selectFile(\'image2\')" draggable="false" style="max-width:100%"/>\
-          </div>\
-        <div class="alt-wrap" v-if="isAltEnabled">\
-          <input type="text" v-model="item.image2_alt" :id="item.image2_alt" style="width:100% !important" placeholder="altを入力してください" />\
-        </div>\
-        <button class="remove" tabindex="-1" v-on:click.prevent="onFileDelete(\'image2\')">画像をクリア</button>\
-        <button class="uploader" tabindex="-1" v-on:click.prevent="selectFile(\'image2\')">アップロード済みの画像から選択</button>\
-      </div>\
-    </div>\
-    <div class="item text">\
-      <div class="col3"><button v-on:click.prevent="onItemDelete" tabindex="-1"><span>削除</span></button></div>\
-    </div>\
-    <separator style="clear:both;" v-on:label-drop-on-separator="onLabelDrop" v-on:separator-click="onSeparatorClick" />\
-  </div>',
-  props: ['item'],
-  data: function(){
-    return {
-      randomID: [],
-      dragover: {
-        'image1':false,
-        'image2':false
-      },
-      isDndSupported: editor.options.uploaderDomain ? false : true,
-      isLoadingFile: {
-        'image1':false,
-        'image2':false
-      },
-      uploadProgress: 0,
-      inputComponent: editor.options.inlineVe ? 'visualeditor' : 'plaintexteditor',
-      focus: false,
-      maxFileSize: editor.options.maxFileSize
-    }
-  },
-  components: {
-    visualeditor: VEComponent,
-    plaintexteditor: plainTextInputComponent,
-    separator: separatorComponent
-  },
-  mixins: [itemMixin],
-  created: function(){
-  },
-  mounted: function(){
-    for(var i=0; i<3; i++) this.randomID.push('image-align-'+getRandomString(6,'numeric'));
-  },
-  computed: {
-    // ALTの入力を許可するか
-    isAltEnabled: function () {
-      return editor.options.allowImageAlt;
-    }
-  },
-  methods: {
-    // ドラッグ&ドロップ処理が可能か
-    canDrop: function(){
-      return this.isDndSupported && !droppingItem; // 要素のドラッグ&ドロップ処理でなければドロップ処理可
-    },
-
-    // アップローダボタンクリック
-    selectFile: function(field){
-      this.current = field
-
-      // アップローダの表示
-      ArticleEditor.showUploader(
-        editor.options.uploaderDomain,
-        editor.options.uploaderPath,
-        editor.options.uploaderDir,
-        this.setImage
-      );
-      return false;
-    },
-
-
-    // アップロードファイル指定
-    setImage: function(path){
-      var acceptable = editor.options.imageTypes;
-      if( path && acceptable ){
-        var reg = new RegExp('\.('+ acceptable.join('|') +')$');
-        if( !path.match( reg ) ){
-          alert('画像の種類は ' + acceptable.join('・') + ' のいずれかである必要があります');
-          return false;
-        }
-      }
-      this.$set(this.item, this.current, path)
-      this.current = undefined
-    },
-
-    // ファイルの削除
-    onFileDelete: function(field){
-      if( !confirm('画像をクリアします。よろしいですか？\n(アップロードされたファイルは削除されません)') ) return false;
-      this.current = field
-      this.setImage( null );
-    },
-
-    // VEの初期化完了
-    onVEInit: function(){
-      this.item.veInited = true;
-    },
-
-    // ファイルのドラッグオーバー
-    onDragover: function(ev, field){
-      if( !this.canDrop() ) return false;
-
-      ev.dataTransfer.dropEffect = 'copy';
-      // this.dragover = true;
-      this.$set(this.dragover, field,  true)
-    },
-
-    // ファイルのドラッグリーブ
-    onDragleave: function(ev,field){
-      if( !this.canDrop() ) return false;
-
-      // this.dragover = false;
-      this.$set(this.dragover, field,  false)
-    },
-
-    // ファイルのドロップ
-    onDrop: function(ev, field){
-      if( !this.canDrop() ) return false;
-
-      this.current = field
-
-      var self = this;
-      // this.dragover = false;
-      this.$set(this.dragover, field, false)
-      this.$set(this.isLoadingFile, field,  true)
-
-      this.uploadProgress = 0;
-
-      // ドロップされたファイルのチェック
-      var files = ev.dataTransfer.files;
-      file_count = files.length;
-
-      var error = '';
-      if( file_count == 0 ) error = '画像が指定されていません';
-      else if( file_count > 1 ) error = 'アップロードできる画像は1個までです';
-
-      var file = files[0];
-      if( !error && file.size > sizeToByte(editor.options.maxFileSize) ) error = '画像のサイズが上限('+editor.options.maxFileSize+')を超過しています';
-
-      var acceptable = editor.options.imageTypes;
-      if( !error && acceptable ){
-        var reg = new RegExp('\.('+ acceptable.join('|') +')$');
-        if( !file.name.match( reg ) ){
-          error = '画像の種類は ' + acceptable.join('・') + ' のいずれかである必要があります';
-        }
-      }
-      if( error ){
-        this.$set(this.isLoadingFile, field,  false)
-        alert( error );
-        return false;
-      }
-
-      // ファイル送信成功
-      var onSuccess = function(file){
-        self.$set(self.isLoadingFile, field,  false)
-        self.setImage(file); // 画像のセット
-      };
-      // ファイル送信失敗
-      var onError = function(err){
-        self.$set(self.isLoadingFile, field,  false)
-        alert(err); // エラーを表示
-      };
-      var progress = function(progress){
-        self.uploadProgress = progress*100;
-      };
-
-      // ファイルの送信処理
-      ArticleEditor.upload.call(
-        this,
-        file,
-        editor.options.uploaderPath,
-        editor.options.uploaderDir,
-        onSuccess,
-        onError,
-        progress
-      );
-
-    },
-
-    onFocus: function(){
-      this.focus = true;
-    },
-
-    onBlur: function(){
-      this.focus = false;
-    }
-  }
-};
-
 
     var defaultItemDef = {
       'big-heading': {type:'big-heading' ,component:'textItem',id:null,  text:null},
       'mid-heading': {type: 'mid-heading', component: 'textItem',id: null,text:null},
       'small-heading': {type: 'small-heading', component: 'textItem', id: null,text:null},
       'text': {type: 'text', component: 'textItem', id: null, text:''},
-      've-text': {component: 'VETextItem', align: 'left',id:null, text:'', veInited:false},
+      've-text': {component: 'VETextItem', id:null, text:'', veInited:false},
       'image': {component: 'imageItem', align: 'left', image: null, text: null, id: null, veInited:false},
-      'image-kmu': {component: 'imageKmuItem', align: 'left', image: null, text: null, id: null, veInited:false},
+      'image-only': {component: 'imageOnlyItem', align: 'left', image: null, text: null, id: null, veInited:false},
       'link': {component: 'linkItem', url: null, text: null, id: null, newWindow:false},
-      'link-kmu': {component: 'linkKmuItem', id: null, links: [{url: null, text: null, newWindow:false},{url: null, text: null, newWindow:false}] },
-      'list': {component:'listKmuItem', rows:[{component:'row',text:null, id:null}], isLink:false},
-      'list-kmu': {component:'listKmuItem', rows:[{component:'row',text:null, id:null}], isLink:true},
-      'list-link-kmu': {component:'listLinkKmuItem', rows:[{component:'row',text:null, id:null}], isLink:true},
+      'list': {component:'listItem', rows:[{component:'row',text:null, id:null}]},
       'table': {component: 'tableItem', rows: [], id: null},
-      'html': {component: 'htmlItem', html:null, id: null},
-      'youtube': {component:'youtubeItem',id:null,  text:null},
-      'vs-image': {component: 'VSImageItem', align: 'left', image: null, text: null, id: null, veInited:false}
+      'html': {component: 'htmlItem', html:null, id: null}
     };
 
     // POST値を解析して要素を配置する処理 ////////////////////////////////////
@@ -3377,10 +2381,6 @@ var VSImageComponent = {
           if (class_name) def.className = class_name.trim();
         }
 
-        def.align='left';
-        if( $elm.hasClass('right') ) def.align='right';
-        if( $elm.hasClass('center') ) def.align='center';
-
         itemDef.push(def);
       }else if( tag===editor.options.imageTag.toUpperCase() && $elm.hasClass(editor.options.imageTagClass) ){
         // 画像の場合
@@ -3432,43 +2432,30 @@ var VSImageComponent = {
 
         def.id = getRandomString();
         itemDef.push(def);
-      }else if( 
-        tag===editor.options.imageTag.toUpperCase() && 
-        $elm.hasClass('imageCol') && 
-        $elm.find('.imageCol__image').length > 0
-      ){
 
-        if( editor.options.types.indexOf('image-kmu') === -1 ) return;
-
-        var def = cloneHash(defaultItemDef['image-kmu']);
-        var $d_img_wrap = $elm.find('.imageCol__image').eq(0);
-        var $d_img = $d_img_wrap.find('img').eq(0);
+      } else if (tag === editor.options.imageTag.toUpperCase() && $elm.hasClass(editor.options.imageOnlyTagClass)) {
+        // 画像のみの場合
+        if (editor.options.types.indexOf('image-only') === -1) return;
+        var def = cloneHash(defaultItemDef['image-only']);
+        var $d_img = $elm.find('img').eq(0);
         var img=null;
         if( $d_img ){
           // 画像パスの抽出
           def.image = $d_img.attr('src');
         }
-        var $d_text_wrap = $elm.find('.imageCol__text').eq(0);
-        var text=null;
-        if( $d_text_wrap.length ){
-          // 回り込みテキストの抽出
-          var text = $d_text_wrap.html();
-
-          // VEモードでなく、HTML手動許可の場合はタグをエスケープする
-          if( !editor.options.inlineVe && editor.options.allowHtmlInText ) text = escapeHtml( text );
-          text = text.replace(/&lt;br(\s*\/)?&gt;/g, '<br>'); // 改行のみタグに戻す
-          // _d(text);
-
-          def.text = text;
+        // CSSクラス名の取得
+        if (editor.options.allowCssClass) {
+          var class_name = $elm.attr('class');
+          if (class_name) class_name = class_name.replace(editor.options.imageTagClass, '').trim();
+          if (class_name) def.className = class_name;
         }
-
-        def.heading = $elm.find('.imageCol__title:eq(0)').text();
-        def.link_url = $elm.find('.imageCol__button a:eq(0)').attr('href');
-        def.link_text = $elm.find('.imageCol__button a:eq(0)').text();
-
+        // 画像ALTの取得
+        if (editor.options.allowImageAlt) {
+          var alt = $d_img.attr('alt');
+          def.altName = alt ? alt : null;
+        }
         def.id = getRandomString();
         itemDef.push(def);
-
       }else if( tag===editor.options.linkTag.toUpperCase() && $elm.hasClass(editor.options.linkTagClass) ){
         // リンク
         if( editor.options.types.indexOf('link') === -1 ) return;
@@ -3486,85 +2473,6 @@ var VSImageComponent = {
           if (class_name) class_name = class_name.replace(editor.options.linkTagClass, '').trim();
           if (class_name) def.className = class_name;
         }
-
-        itemDef.push(def);
-      }else if( tag===editor.options.linkTag.toUpperCase() && $elm.hasClass("buttonCol") ){
-        // リンク
-        if( editor.options.types.indexOf('link-kmu') === -1 ) return;
-
-        var def = cloneHash(defaultItemDef['link-kmu']);
-        $elm.find('a').each(function(i) {
-            def.links[i].url = $(this).attr('href');
-            def.links[i].text = $(this).text();
-            def.links[i].newWindow = $(this).attr('target')==='_blank' ? true : false;
-        });
-        // def.url = $elm.find('a').eq(0).attr('href');
-        // def.text = $elm.find('a').eq(0).text();
-        // def.newWindow = $elm.find('a').eq(0).attr('target')==='_blank' ? true : false;
-        def.id = getRandomString();
-
-        // CSSクラス名の取得
-        if (editor.options.allowCssClass) {
-          var class_name = $elm.attr('class');
-          if (class_name) class_name = class_name.replace(editor.options.linkTagClass, '').trim();
-          if (class_name) def.className = class_name;
-        }
-
-        itemDef.push(def);
-      }else if( tag===editor.options.listTag.toUpperCase() && $elm.hasClass('listTypeA')){
-        // リスト
-        if( editor.options.types.indexOf('list-kmu') === -1 ) return;
-
-        var def = cloneHash(defaultItemDef['list-kmu']);
-
-        var rows = [];
-        $elm.find('li').each(function(){
-          $e = $(this);
-          var text = $e.find('span:eq(0)').text()
-          var url = '';
-          if($e.find('a').length > 0)
-            url = $e.find('a').attr('href');
-          rows.push({ component: 'row', text: text, url: url, id: getRandomString() });
-        });
-        if( rows.length===0 ){
-          // 入力がない場合は、初期入力用に行を一つだけ追加
-          def.rows[0].id = getRandomString();
-          rows = def.rows;
-        }
-        def.rows = rows;
-
-        def.id = getRandomString();
-
-        // CSSクラス名の取得
-        if (editor.options.allowCssClass) {
-          var class_name = $elm.attr('class');
-          if (class_name) def.className = class_name.trim();
-        }
-
-        itemDef.push(def);
-      }else if( tag===editor.options.listTag.toUpperCase() && $elm.hasClass('arrowLinkList')){
-        // リスト
-        if( editor.options.types.indexOf('list-link-kmu') === -1 ) return;
-
-        var def = cloneHash(defaultItemDef['list-link-kmu']);
-
-        var rows = [];
-        $elm.find('li').each(function(){
-          $e = $(this);
-          var text = $e.find('span:eq(0)').text()
-          var url = '';
-          if($e.find('a').length > 0)
-            url = $e.find('a').attr('href');
-          rows.push({ component: 'row', text: text, url: url, id: getRandomString() });
-        });
-        if( rows.length===0 ){
-          // 入力がない場合は、初期入力用に行を一つだけ追加
-          def.rows[0].id = getRandomString();
-          rows = def.rows;
-        }
-        def.rows = rows;
-
-        def.id = getRandomString();
 
         itemDef.push(def);
       }else if( tag===editor.options.listTag.toUpperCase() ){
@@ -3646,28 +2554,6 @@ var VSImageComponent = {
         def.id = getRandomString();
         itemDef.push(def);
       }
-      else if ($elm.hasClass('movie')) {
-        if (editor.options.types.indexOf('youtube') === -1) return;
-        var def = cloneHash(defaultItemDef['youtube']);
-        var cont = $elm.find('iframe').attr('src');
-        def.id = getRandomString();
-        def.text  = cont;
-        itemDef.push(def);
-
-      }else if( tag===editor.options.imageTag.toUpperCase() && $elm.hasClass('imageCol') ){
-        var def = cloneHash(defaultItemDef['vs-image']);
-
-        if( $elm.find('img').length ){
-            // 行揃え設定の抽出
-            def.image1 = $elm.find('img').eq(0).attr('src');
-            def.image2 = $elm.find('img').eq(1).attr('src');
-        }
-
-        def.id = getRandomString();
-        itemDef.push(def);
-      }
-
-
     });
 
     // フォーム送信時処理 ////////////////////////////////////////////////////
@@ -3708,9 +2594,6 @@ var VSImageComponent = {
 
           // CSSクラス名の設定
           var class_name = '';
-          if( item.align !== 'left'){
-            class_name = ' class="'+ escapeHtml(item.align) +'"';
-          }
           if (editor.options.allowCssClass && item.className) {
             class_name = ' class="' + escapeHtml(item.className.trim()) + '"';
           }
@@ -3740,28 +2623,26 @@ var VSImageComponent = {
           }
 
           send += '<' + editor.options.imageTag + ' class="' + editor.options.imageTagClass + class_name + '">\n<p class="img img-'+ item.align +'"><img src="'+ item.image +'" title="'+ item.image + '"' + alt_name + ' /></p>\n<p class="text">'+ text + '</p>\n</'+ editor.options.imageTag +'>\n';
-        }else if( item.component === 'imageKmuItem' ){
-          // 画像
+
+        } else if (item.component === 'imageOnlyItem') {
+          
+          // 画像のみ
           if( !item.image ) continue;
 
-          var text = arrangeEditableHtml( item.text );
-          if( !editor.options.inlineVe && editor.options.allowHtmlInText ){
-           // VEモードでなく、HTMLの手動許可の場合
-           // 入力タグを有効にするためにエスケープ解除
-           text = unescapeHtml( text );
+          // CSSクラス名の設定
+          var class_name = '';
+          if (editor.options.allowCssClass && item.className) {
+            class_name = ' ' + escapeHtml(item.className.trim());
           }
-          send += '<div class="imageCol"><div class="imageCol__image"><img src="'+ item.image +'" alt=""></div>';
-          send += '<div class="imageCol__body">';
-          if( item.heading ){
-            send += '<h3 class="imageCol__title">'+ item.heading +'</h3>';
+
+          // 画像ALTの設定
+          var alt_name = '';
+          if (editor.options.allowImageAlt && item.altName) {
+            alt_name = ' alt="' + escapeHtml(item.altName) + '"';
           }
-          if( text ){
-            send += '<p class="imageCol__text">'+ text +'</p>';
-          }
-          if( item.link_url && item.link_text){
-            send += '<p class="imageCol__button"><a href="'+ item.link_url +'" class="buttonA">'+ item.link_text +'</a></p>';
-          }
-          send += '</div></div>\n';
+
+          send += '<' + editor.options.imageTag + ' class="' + editor.options.imageOnlyTagClass + class_name + '">\n<img src="' + item.image + '" title="' + item.image + '"' + alt_name + ' /></' + editor.options.imageTag + '>\n';
+
         }else if( item.component === 'linkItem' ){
           // リンク
           if( !item.url ) continue;
@@ -3778,30 +2659,6 @@ var VSImageComponent = {
           }
 
           send += '<'+ editor.options.linkTag + ' class="'+ editor.options.linkTagClass + class_name + '">\n<a href="'+ url +'"'+ (item.newWindow ? ' target="_blank" rel="noopener"' : '') +'>'+ text +'</a>\n</'+ editor.options.linkTag +'>\n';
-        }else if( item.component === 'linkKmuItem' ){
-
-          // リンク
-          if( item.links.length === 0) continue;
-            
-          // CSSクラス名の設定
-          var class_name = '';
-          if (editor.options.allowCssClass && item.className) {
-            class_name = ' ' + escapeHtml(item.className.trim());
-          }
-          
-          send += '<'+ editor.options.linkTag + ' class="buttonCol'+ class_name + '">\n';
-
-          for (let i = 0; i < item.links.length; i++) {
-            if( item.links[i].url === null || item.links[i].url === '') continue;
-          
-            // 入力値をエスケープ
-            var url = escapeHtml(item.links[i].url);
-            var text = escapeHtml(item.links[i].text);
-            if( !text ) text = url;  // テキストが入力されていなければURLをセットする
-            send += '<p class="buttonCol__item">\n<a href="'+ url +'"'+ (item.links[i].newWindow ? ' target="_blank" rel="noopener"' : '') +' class="buttonA">'+ text +'</a></p>\n';
-          }
-          send += '</'+ editor.options.linkTag +'>\n';
-
         }else if( item.component === 'listItem' ){
           // リスト
 
@@ -3823,52 +2680,6 @@ var VSImageComponent = {
             }
 
             send += '<' + editor.options.listTag + class_name +'>\n' + list_tag + '</'+ editor.options.listTag +'>\n';
-          }
-
-        }else if( item.component === 'listKmuItem' ){
-          // リスト
-
-          var list_tag = '';
-          item.rows.forEach(function(row){
-            if( !row.text ) return;
-            var text = row.text;
-
-            // HTML入力を許可しない場合はタグをエスケープする
-            if( !editor.options.allowHtmlInText ) text = escapeHtml(text);
-
-            list_tag += '<li class="listTypeA__item"><span>' + text + '</span>';
-            if( row.url ) {
-                list_tag += '<a href="'+row.url+'" class="listTypeA__link">疾患の解説</a>';
-            }
-            list_tag += '</li>\n';
-          });
-          if( list_tag ){
-            // CSSクラス名の設定
-            var class_name = ' class="listTypeA -pcCol2"';
-            //if (editor.options.allowCssClass && item.className) {
-            //  class_name = ' class="' + escapeHtml(item.className.trim()) + '"';
-            //}
-
-            send += '<' + editor.options.listTag + class_name +'>\n' + list_tag + '</'+ editor.options.listTag +'>\n';
-          }
-
-        }else if( item.component === 'listLinkKmuItem' ){
-          // リスト
-
-          var list_tag = '';
-          item.rows.forEach(function(row){
-            if( !row.text || !row.url) return;
-            var text = row.text;
-
-            // HTML入力を許可しない場合はタグをエスケープする
-            if( !editor.options.allowHtmlInText ) text = escapeHtml(text);
-
-            list_tag += '<li class="arrowLinkList__item"><a href="'+row.url+'"><span>'+text+'</span></a></li>\n';
-          });
-          if( list_tag ){
-            // CSSクラス名の設定
-            var class_name = ' ';
-            send += '<' + editor.options.listTag + ' class="arrowLinkList">\n' + list_tag + '</'+ editor.options.listTag +'>\n';
           }
 
         }else if( item.component === 'tableItem' ){
@@ -3944,26 +2755,6 @@ var VSImageComponent = {
 
           send += '<' + editor.options.htmlTag + ' class="' + editor.options.htmlTagClass + class_name + '">' + html + '</' + editor.options.htmlTag + '>\n';
         }
-        else if( item.component === 'youtubeItem' ){
-          // youtube
-
-          var text = item.text;
-          if( !text || !text.startsWith("https://www.youtube.com/") ) continue;
-
-          send += '<div class="movie">';
-          send += '<iframe width="560" height="315" src="'+text+'" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>';
-          send += '</div>';
-        }else if( item.component === 'VSImageItem' ){
-          if( !item.image1 && !item.image2 ) continue;
-            send += '<div class="imageCol">';
-          if( item.image1 ){
-            send += '<div><img src="'+ item.image1 +'" alt="'+ (item.image1_alt === undefined ? '' : item.image1_alt) +'"></div>';
-          }
-          if( item.image2 ){
-            send += '<div><img src="'+ item.image2 +'" alt="'+ (item.image2_alt === undefined ? '' : item.image2_alt) +'"></div>';
-          }
-          send += '</div>';
-        }
 
       }
       if( send ) send = '<'+ editor.options.wholeWrapTag +' class="'+ editor.options.wholeWrapTagClass +'">\n'+ send +'</'+ editor.options.wholeWrapTag +'>\n';
@@ -4029,16 +2820,11 @@ var VSImageComponent = {
           textItem: textComponent,
           VETextItem: VETextComponent,
           imageItem: imageComponent,
-          imageKmuItem: imageComponent_for_kmu,
+          imageOnlyItem: imageOnlyComponent,
           linkItem: linkComponent,
-          linkKmuItem: linkComponent_for_kmu,
           listItem: listComponent,
-          listKmuItem: listComponent_for_kmu,
-          listLinkKmuItem: listLinkComponent_for_kmu,
           tableItem: tableComponent,
-          htmlItem: htmlComponent,
-          youtubeItem: youtubeComponent,
-          VSImageItem: VSImageComponent
+          htmlItem: htmlComponent
         },
         created: function(){
           this.items = itemDef;
@@ -4084,7 +2870,7 @@ var VSImageComponent = {
             // クリックされた位置を検索し、その位置に要素を追加する
             var pos = currentItem ? this.items.indexOf(currentItem)+1 : 0;
             var item = cloneHash(defaultItemDef[type]);
-            if (type === 'list' || type === 'list-kmu' || type === 'list-link-kmu') {
+            if (type === 'list') {
               item.rows[0].id = getRandomString();
             }
             item.id = getRandomString();
